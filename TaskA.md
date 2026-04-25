@@ -119,3 +119,62 @@ Run date: **2026-04-24**
 
 ### Summary
 The upgraded preprocessing improved validation accuracy from `0.8103` to `0.8121` and improved validation macro F1 from `0.8120` to `0.8139` against the leakage-free baseline. The gain is modest but consistent with a cleaner evaluation setup and a preprocessing design that matches the structure of the credit-risk data better than mode-imputation plus label encoding.
+
+## 5-Fold CV Candidate (Tree Stack + CatBoost)
+
+Run date: **2026-04-25**
+
+### Candidate Model
+Stacked ensemble classifier with a linear meta-learner and four base models:
+- Base model 1: `RandomForestClassifier`
+- Base model 2: `XGBClassifier`
+- Base model 3: `LGBMClassifier`
+- Base model 4: `CatBoostClassifier` with native categorical handling
+- Final decision layer: `LinearRegression` on concatenated class probabilities from all 4 base models
+- Final class mapping: `round` + `clip` to integer classes `[0, 4]`
+
+### Preprocessing Split By Model Family
+- `RandomForestClassifier`, `XGBClassifier`, and `LGBMClassifier` keep the upgraded Task A preprocessing from above:
+  - one-hot categorical encoding
+  - missing-value indicators
+  - structural zero-fill
+  - train-fold median imputation for remaining numeric columns
+  - 99th-percentile clipping
+  - `log1p` on money-like features
+- `CatBoostClassifier` uses native categorical handling:
+  - raw categorical columns stay categorical and missing values are filled with `"Missing"`
+  - structural zero-fill is still applied where missingness semantically means zero
+  - clipping and `log1p` are still applied to the Task A money / ratio features
+  - remaining numeric missing values are left as `NaN` for CatBoost to handle natively
+
+### Evaluation Protocol
+- Outer evaluation: `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`
+- Inner stacking folds: `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)` inside each outer training fold
+- Comparison baseline: executed FC neural network results from `taskA_nn.md`
+
+### Tree Stack + CatBoost 5-Fold Metrics
+| Fold | Accuracy | Macro F1 |
+|---|---:|---:|
+| 1 | `0.8280` | `0.8298` |
+| 2 | `0.8213` | `0.8226` |
+| 3 | `0.8271` | `0.8288` |
+| 4 | `0.8151` | `0.8167` |
+| 5 | `0.8240` | `0.8256` |
+| Mean | `0.8231` | `0.8247` |
+| Std | `0.0052` | `0.0053` |
+
+### Comparison Against FC Neural Network
+| Model | Accuracy Mean | Accuracy Std | Macro F1 Mean | Macro F1 Std |
+|---|---:|---:|---:|---:|
+| Tree stack + CatBoost | `0.8231` | `0.0052` | `0.8247` | `0.0053` |
+| FC neural network | `0.8157` | `0.0065` | `0.8166` | `0.0068` |
+
+### Result
+Adding `CatBoostClassifier` with native categorical handling to the stacked tree ensemble was beneficial in this codebase under the same 5-fold CV protocol:
+- Accuracy improvement over the FC NN: `+0.0074`
+- Macro F1 improvement over the FC NN: `+0.0081`
+
+Detailed outputs are recorded in:
+- `taskA_tree_catboost_cv.py`
+- `taskA_tree_catboost_vs_nn.md`
+- `taskA_tree_catboost_cv_results.json`
