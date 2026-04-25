@@ -1,7 +1,7 @@
 # Task A Tree Stack + CatBoost vs NN
 
 ## Objective
-Evaluate a Task A stacked tree ensemble that adds a CatBoost base learner with native categorical handling, then compare the 5-fold cross-validation metrics against the previously executed FC neural network results in `taskA_nn.md`.
+Evaluate a Task A stacked tree ensemble that adds a CatBoost base learner with native categorical handling, then compare the 5-fold cross-validation metrics against the previously executed FC neural network results in `task_a/reports/taskA_fc_nn.md`.
 
 ## Tree Stack Configuration
 - Meta-learner: `LinearRegression` on concatenated base-model class probabilities, followed by `round` + `clip` to integer labels `[0, 4]`.
@@ -12,7 +12,7 @@ Evaluate a Task A stacked tree ensemble that adds a CatBoost base learner with n
 ## Evaluation Protocol
 - Outer CV: `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`.
 - Inner stacking CV: `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)` inside each outer training fold.
-- NN comparison baseline: parsed from the executed `taskA_nn.md` report.
+- NN comparison baseline: parsed from the executed `task_a/reports/taskA_fc_nn.md` report.
 
 ## Tree Stack + CatBoost Fold Metrics
 | fold | train_rows | val_rows | accuracy | macro_f1 |

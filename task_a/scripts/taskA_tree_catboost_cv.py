@@ -29,12 +29,12 @@ MODEL_THREADS = -1
 CLASS_LABELS = [0, 1, 2, 3, 4]
 CLASS_NAMES = ["VeryLow(0)", "Low(1)", "Moderate(2)", "High(3)", "VeryHigh(4)"]
 
-DATA_DIR = Path("creditsense-ai1215")
+DATA_DIR = Path("data/creditsense-ai1215")
 TRAIN_PATH = DATA_DIR / "credit_train.csv"
 
-NN_REPORT_PATH = Path("taskA_nn.md")
-RESULTS_JSON_PATH = Path("taskA_tree_catboost_cv_results.json")
-RESULTS_MD_PATH = Path("taskA_tree_catboost_vs_nn.md")
+NN_REPORT_PATH = Path("task_a/reports/taskA_fc_nn.md")
+RESULTS_JSON_PATH = Path("task_a/artifacts/taskA_tree_catboost_cv_results.json")
+RESULTS_MD_PATH = Path("task_a/reports/taskA_tree_catboost_vs_fc_nn.md")
 
 
 TASK_A_ZERO_FILL_COLS = [
@@ -564,7 +564,7 @@ def write_report(
             "# Task A Tree Stack + CatBoost vs NN",
             "",
             "## Objective",
-            "Evaluate a Task A stacked tree ensemble that adds a CatBoost base learner with native categorical handling, then compare the 5-fold cross-validation metrics against the previously executed FC neural network results in `taskA_nn.md`.",
+            "Evaluate a Task A stacked tree ensemble that adds a CatBoost base learner with native categorical handling, then compare the 5-fold cross-validation metrics against the previously executed FC neural network results in `task_a/reports/taskA_fc_nn.md`.",
             "",
             "## Tree Stack Configuration",
             "- Meta-learner: `LinearRegression` on concatenated base-model class probabilities, followed by `round` + `clip` to integer labels `[0, 4]`.",
@@ -575,7 +575,7 @@ def write_report(
             "## Evaluation Protocol",
             f"- Outer CV: `StratifiedKFold(n_splits={OUTER_FOLDS}, shuffle=True, random_state={RANDOM_STATE})`.",
             f"- Inner stacking CV: `StratifiedKFold(n_splits={INNER_FOLDS}, shuffle=True, random_state={RANDOM_STATE})` inside each outer training fold.",
-            "- NN comparison baseline: parsed from the executed `taskA_nn.md` report.",
+            "- NN comparison baseline: parsed from the executed `task_a/reports/taskA_fc_nn.md` report.",
             "",
             "## Tree Stack + CatBoost Fold Metrics",
             dataframe_to_markdown(results["fold_metrics_df"], index=False, float_digits=4),

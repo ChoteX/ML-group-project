@@ -187,6 +187,6 @@ theta_(t+1) = theta_t - eta * m_hat_t / (sqrt(v_hat_t) + epsilon)
 
 ## Generated Artifacts
 - Notebook: `taskA_nn.ipynb`
-- Markdown report: `taskA_nn.md`
+- Markdown report: `task_a/reports/taskA_fc_nn.md`
 - Task A predictions: `taskA_nn_risktier_predictions.csv`
 - Prediction rows written: 15000

@@ -1,6 +1,18 @@
 # Task A Model Log
 
-## Current Model (Classification: `RiskTier`)
+## Current Best Candidate (Classification: `RiskTier`)
+Task A adaptation of the Task B ensemble design, evaluated with 5-fold CV and used for the latest submission artifact:
+- Base model 1: `XGBClassifier`
+- Base model 2: `RandomForestClassifier`
+- Base model 3: `HistGradientBoostingClassifier`
+- Base model 4: `LogisticRegression`
+- Base model 5: `MLPClassifier`
+- Optional base model implemented but disabled in the executed run: `CatBoostClassifier`
+- Meta-learner: `LogisticRegression(multi_class='multinomial')` inside `StackingClassifier`
+- Latest Task A artifact: `submissions/submission.csv`
+- Submission behavior: overwrite `RiskTier`, preserve existing `InterestRate` when present
+
+## Historical 80/20 Split Model (Classification: `RiskTier`)
 Stacked ensemble classifier with a linear meta-learner:
 - Base model 1: `RandomForestClassifier`
 - Base model 2: `XGBClassifier`
@@ -150,7 +162,7 @@ Stacked ensemble classifier with a linear meta-learner and four base models:
 ### Evaluation Protocol
 - Outer evaluation: `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`
 - Inner stacking folds: `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)` inside each outer training fold
-- Comparison baseline: executed FC neural network results from `taskA_nn.md`
+- Comparison baseline: executed FC neural network results from `task_a/reports/taskA_fc_nn.md`
 
 ### Tree Stack + CatBoost 5-Fold Metrics
 | Fold | Accuracy | Macro F1 |
@@ -175,6 +187,81 @@ Adding `CatBoostClassifier` with native categorical handling to the stacked tree
 - Macro F1 improvement over the FC NN: `+0.0081`
 
 Detailed outputs are recorded in:
-- `taskA_tree_catboost_cv.py`
-- `taskA_tree_catboost_vs_nn.md`
-- `taskA_tree_catboost_cv_results.json`
+- `task_a/scripts/taskA_tree_catboost_cv.py`
+- `task_a/reports/taskA_tree_catboost_vs_fc_nn.md`
+- `task_a/artifacts/taskA_tree_catboost_cv_results.json`
+
+## 5-Fold CV Candidate (Task B-Style StackingClassifier)
+
+Run date: **2026-04-25**
+
+### Candidate Model
+Task A adaptation of the Task B ensemble design:
+- Base model 1: `XGBClassifier`
+- Base model 2: `RandomForestClassifier`
+- Base model 3: `HistGradientBoostingClassifier`
+- Base model 4: `LogisticRegression`
+- Base model 5: `MLPClassifier`
+- Optional base model implemented but disabled in the executed run: `CatBoostClassifier`
+- Meta-learner: `LogisticRegression(multi_class='multinomial')` inside `StackingClassifier`
+
+### Evaluation Protocol
+- Outer evaluation: `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`
+- Inner stacking folds for the executed run: `2`
+- Task A preprocessing stays on the upgraded one-hot / missing-indicator / zero-fill / clipping / `log1p` pipeline
+- Logistic and MLP branches additionally scale only the processed numeric columns
+
+### 5-Fold Metrics
+| Fold | Accuracy | Macro F1 |
+|---|---:|---:|
+| 1 | `0.8353` | `0.8356` |
+| 2 | `0.8321` | `0.8331` |
+| 3 | `0.8319` | `0.8327` |
+| 4 | `0.8289` | `0.8292` |
+| 5 | `0.8333` | `0.8341` |
+| Mean | `0.8323` | `0.8330` |
+| Std | `0.0023` | `0.0024` |
+
+### Comparison Against Prior Candidates
+| Model | Accuracy Mean | Accuracy Std | Macro F1 Mean | Macro F1 Std |
+|---|---:|---:|---:|---:|
+| Task B-style StackingClassifier | `0.8323` | `0.0023` | `0.8330` | `0.0024` |
+| Tree stack + CatBoost | `0.8231` | `0.0052` | `0.8247` | `0.0053` |
+| FC neural network | `0.8157` | `0.0065` | `0.8166` | `0.0068` |
+
+### Result
+The Task B-style stacking classifier outperformed both previously recorded Task A candidates under the same outer 5-fold evaluation:
+- Improvement over tree stack + CatBoost: `+0.0092` accuracy, `+0.0082` macro F1
+- Improvement over FC neural network: `+0.0166` accuracy, `+0.0164` macro F1
+
+Detailed outputs are recorded in:
+- `taskA_nn.ipynb`
+- `task_a/reports/taskA_taskb_style_stack_vs_baselines.md`
+
+### Submission Artifact
+Run date: **2026-04-26**
+
+- Generated Task A predictions by fitting the Task B-style stacking classifier on all 35,000 Task A training rows.
+- Wrote the combined submission file to `submissions/submission.csv`.
+- `RiskTier` was overwritten with the new classifier predictions.
+- Existing `InterestRate` values were preserved from the prior `submissions/submission.csv`.
+
+## Comparison Across Recorded Implementations
+
+The table below mixes two evaluation protocols, so it should be read accordingly:
+- The first two rows are single 80/20 validation-split results.
+- The last three rows are outer 5-fold cross-validation means.
+
+| Model | Evaluation Protocol | Accuracy | Macro F1 | Notes |
+|---|---|---:|---:|---|
+| Leakage-free baseline | Single 80/20 validation split | `0.8103` | `0.8120` | Original leakage-free repaired baseline |
+| Upgraded one-hot + clipping | Single 80/20 validation split | `0.8121` | `0.8139` | Added one-hot encoding, missing indicators, zero-fill, clipping, `log1p` |
+| FC neural network | 5-fold CV mean | `0.8157` | `0.8166` | Fully connected MLP with Adam and engineered interactions |
+| Tree stack + CatBoost | 5-fold CV mean | `0.8231` | `0.8247` | RF + XGB + LGBM + native-categorical CatBoost with linear meta-layer |
+| Task B-style StackingClassifier | 5-fold CV mean | `0.8323` | `0.8330` | XGB + RF + HGB + logistic + MLP with multinomial logistic meta-learner |
+
+### Current Ranking
+By the strongest recorded evaluation in this repo, the current ranking is:
+1. `Task B-style StackingClassifier` at `0.8323` accuracy / `0.8330` macro F1
+2. `Tree stack + CatBoost` at `0.8231` accuracy / `0.8247` macro F1
+3. `FC neural network` at `0.8157` accuracy / `0.8166` macro F1

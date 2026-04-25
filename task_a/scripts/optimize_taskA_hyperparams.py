@@ -595,12 +595,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--train-path",
-        default="creditsense-ai1215/credit_train.csv",
+        default="data/creditsense-ai1215/credit_train.csv",
         help="Path to the training CSV.",
     )
     parser.add_argument(
         "--save-path",
-        default="taskA_hyperparams_spsa_results.json",
+        default="task_a/artifacts/taskA_hyperparams_spsa_results.json",
         help="Where to save the best result JSON.",
     )
     parser.add_argument(
