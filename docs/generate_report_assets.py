@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
+import numpy as np
 import optuna
 import pandas as pd
 import seaborn as sns
@@ -22,6 +23,8 @@ SUMMARY_PATH = ROOT / "docs" / "report_summary.json"
 OPTUNA_SUMMARY_PATH = ROOT / "task_a" / "artifacts" / "taskA_xgb_optuna_optuna_summary.json"
 OPTUNA_TRIALS_PATH = ROOT / "task_a" / "artifacts" / "taskA_xgb_optuna_optuna_trials.csv"
 BEST_MODEL_REPORT_PATH = ROOT / "task_a" / "reports" / "taskA_taskb_style_stack_vs_baselines.md"
+TASK_B_METRICS_PATH = ROOT / "task_b" / "artifacts" / "task_b_metrics.json"
+TASK_B_VALIDATION_PATH = ROOT / "task_b" / "artifacts" / "task_b_validation_predictions.csv"
 
 CORR_MATRIX_FEATURES = [
     "RiskTier",
@@ -37,6 +40,15 @@ CORR_MATRIX_FEATURES = [
     "LoanToIncomeRatio",
     "DebtToIncomeRatio",
 ]
+TASK_B_RATE_BUCKET_ORDER = ["4.99", "5-8", "8-12", "12-20", "20+"]
+TASK_B_MODEL_LABELS = {
+    "LinearRegression": "Linear Regression",
+    "MLPRegressor": "MLP Regressor",
+    "RandomForestRegressor": "Random Forest",
+    "XGBRegressor": "XGBoost",
+    "HistGradientBoostingRegressor": "HistGradientBoosting",
+    "StackingRegressor": "Final Stack",
+}
 
 
 def parse_markdown_table(markdown: str, heading: str) -> pd.DataFrame:
@@ -98,6 +110,11 @@ def generate_data_summary(df: pd.DataFrame) -> dict[str, Any]:
             "mean": round(float(df["InterestRate"].mean()), 4),
             "q3": round(float(df["InterestRate"].quantile(0.75)), 4),
             "max": round(float(df["InterestRate"].max()), 4),
+            "std": round(float(df["InterestRate"].std()), 4),
+            "iqr": round(float(df["InterestRate"].quantile(0.75) - df["InterestRate"].quantile(0.25)), 4),
+            "p90": round(float(df["InterestRate"].quantile(0.90)), 4),
+            "p95": round(float(df["InterestRate"].quantile(0.95)), 4),
+            "floor_pct": round(float(np.isclose(df["InterestRate"], 4.99).mean() * 100.0), 2),
         },
         "top_missing_pct": {k: round(float(v), 2) for k, v in top_missing.sort_values(ascending=False).items()},
         "top_corr_risk": {k: round(float(v), 4) for k, v in corr_risk.items()},
@@ -192,6 +209,231 @@ def generate_eda_figures(df: pd.DataFrame) -> None:
     ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
     fig.tight_layout()
     fig.savefig(FIG_DIR / "correlation_matrix.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+
+def load_task_b_artifacts() -> tuple[dict[str, Any], pd.DataFrame]:
+    if not TASK_B_METRICS_PATH.exists() or not TASK_B_VALIDATION_PATH.exists():
+        raise FileNotFoundError(
+            "Missing Task B report artifacts. Run task_b/scripts/generate_task_b_report_artifacts.py first."
+        )
+
+    metrics_payload = json.loads(TASK_B_METRICS_PATH.read_text(encoding="utf-8"))
+    predictions_df = pd.read_csv(TASK_B_VALIDATION_PATH)
+    if "rate_bucket" in predictions_df.columns:
+        predictions_df["rate_bucket"] = pd.Categorical(
+            predictions_df["rate_bucket"],
+            categories=TASK_B_RATE_BUCKET_ORDER,
+            ordered=True,
+        )
+    return metrics_payload, predictions_df
+
+
+def generate_task_b_figures(df: pd.DataFrame) -> None:
+    metrics_payload, predictions_df = load_task_b_artifacts()
+    target_summary = metrics_payload["target_summary"]
+
+    fig, ax = plt.subplots(figsize=(10.5, 5.8))
+    sns.histplot(
+        df["InterestRate"],
+        bins=50,
+        kde=True,
+        color="#c45a4a",
+        edgecolor="white",
+        alpha=0.9,
+        ax=ax,
+    )
+    ax.axvline(target_summary["mean"], color="#315c8f", linestyle="--", linewidth=1.8, label="Mean")
+    ax.axvline(target_summary["median"], color="#1f1f1f", linestyle=":", linewidth=2.0, label="Median")
+    ax.axvline(target_summary["floor_value"], color="#6db2a8", linestyle="-.", linewidth=1.8, label="Rate floor")
+    stats_text = (
+        f"Mean: {target_summary['mean']:.2f}\n"
+        f"Median: {target_summary['median']:.2f}\n"
+        f"IQR: {target_summary['iqr']:.2f}\n"
+        f"Std: {target_summary['std']:.2f}\n"
+        f"At 4.99: {target_summary['floor_pct']:.1f}%\n"
+        f"P90 / P95: {target_summary['p90']:.2f} / {target_summary['p95']:.2f}"
+    )
+    ax.text(
+        0.985,
+        0.97,
+        stats_text,
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=9,
+        bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "edgecolor": "#d0d0d0"},
+    )
+    ax.set_title("Task B Target Distribution: InterestRate")
+    ax.set_xlabel("InterestRate")
+    ax.set_ylabel("Loans")
+    ax.legend(loc="upper center", ncol=3, frameon=True)
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "task_b_interest_rate_distribution.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+    plot_df = df[["RiskTier", "InterestRate"]].copy()
+    plot_df["RiskTier"] = pd.Categorical(
+        plot_df["RiskTier"].astype(str),
+        categories=["0", "1", "2", "3", "4"],
+        ordered=True,
+    )
+    medians = plot_df.groupby("RiskTier", observed=False)["InterestRate"].median()
+
+    fig, ax = plt.subplots(figsize=(9, 5.8))
+    sns.boxplot(
+        data=plot_df,
+        x="RiskTier",
+        y="InterestRate",
+        palette=["#315c8f", "#4e8fb5", "#6db2a8", "#f0a35e", "#c45a4a"],
+        width=0.65,
+        showfliers=False,
+        ax=ax,
+    )
+    ax.plot(range(len(medians)), medians.to_numpy(), color="#1f1f1f", marker="o", linewidth=1.5, markersize=5)
+    ax.set_title("InterestRate Increases Systematically with RiskTier")
+    ax.set_xlabel("RiskTier")
+    ax.set_ylabel("InterestRate")
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "task_b_interest_rate_by_risktier.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+    corr_series = (
+        df.corr(numeric_only=True)["InterestRate"]
+        .drop(labels=["InterestRate"])
+        .sort_values(key=lambda series: series.abs(), ascending=False)
+        .head(12)
+        .sort_values()
+    )
+    corr_colors = ["#315c8f" if value < 0 else "#c45a4a" for value in corr_series.values]
+    fig, ax = plt.subplots(figsize=(9.5, 6.3))
+    bars = ax.barh(corr_series.index, corr_series.values, color=corr_colors)
+    ax.axvline(0, color="#444444", linewidth=1)
+    ax.set_title("Top Numeric Correlations with InterestRate")
+    ax.set_xlabel("Pearson correlation")
+    ax.set_ylabel("")
+    pad = 0.015
+    for bar, value in zip(bars, corr_series.values):
+        x = value + pad if value >= 0 else value - pad
+        ha = "left" if value >= 0 else "right"
+        ax.text(x, bar.get_y() + bar.get_height() / 2, f"{value:+.3f}", va="center", ha=ha, fontsize=9)
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "task_b_top_correlations.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+    model_df = (
+        pd.DataFrame.from_dict(metrics_payload["models"], orient="index")
+        .reset_index()
+        .rename(columns={"index": "model"})
+    )
+    model_order = metrics_payload["model_order"]
+    model_df["model"] = pd.Categorical(model_df["model"], categories=model_order, ordered=True)
+    model_df = model_df.sort_values("model")
+    model_labels = [TASK_B_MODEL_LABELS.get(name, name) for name in model_df["model"].astype(str)]
+    bar_colors = [
+        "#c45a4a" if name == "StackingRegressor" else "#6db2a8"
+        for name in model_df["model"].astype(str)
+    ]
+
+    fig, axes = plt.subplots(1, 3, figsize=(16, 6.2), sharey=True)
+    metric_specs = [
+        ("rmse", "RMSE", "lower is better"),
+        ("mae", "MAE", "lower is better"),
+        ("r2", "R²", "higher is better"),
+    ]
+    for ax, (metric_key, title, hint) in zip(axes, metric_specs):
+        bars = ax.barh(model_labels, model_df[metric_key], color=bar_colors)
+        ax.set_title(f"{title} ({hint})")
+        ax.set_xlabel(title)
+        for bar, value in zip(bars, model_df[metric_key]):
+            ax.text(value + 0.01, bar.get_y() + bar.get_height() / 2, f"{value:.4f}", va="center", fontsize=8.5)
+    axes[0].set_ylabel("")
+    axes[1].set_ylabel("")
+    axes[2].set_ylabel("")
+    fig.suptitle("Task B Model Comparison on the Shared 80/20 Validation Split", y=1.02)
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "task_b_model_comparison.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+    y_true = predictions_df["y_true"].to_numpy()
+    y_pred = predictions_df["y_pred_stack"].to_numpy()
+    lower = float(min(y_true.min(), y_pred.min()))
+    upper = float(max(y_true.max(), y_pred.max()))
+    fig, ax = plt.subplots(figsize=(7.8, 6.6))
+    hb = ax.hexbin(y_true, y_pred, gridsize=42, cmap="magma", mincnt=1)
+    ax.plot([lower, upper], [lower, upper], linestyle="--", color="#1f1f1f", linewidth=1.5)
+    metrics_box = metrics_payload["models"]["StackingRegressor"]
+    ax.text(
+        0.03,
+        0.97,
+        (
+            f"RMSE: {metrics_box['rmse']:.4f}\n"
+            f"MAE: {metrics_box['mae']:.4f}\n"
+            f"R²: {metrics_box['r2']:.4f}"
+        ),
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=9,
+        bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "edgecolor": "#d0d0d0"},
+    )
+    ax.set_title("Task B Final Stack: Actual vs Predicted InterestRate")
+    ax.set_xlabel("Actual InterestRate")
+    ax.set_ylabel("Predicted InterestRate")
+    cb = fig.colorbar(hb, ax=ax)
+    cb.set_label("Validation rows")
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "task_b_actual_vs_predicted.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+    fig, axes = plt.subplots(1, 2, figsize=(13.8, 5.2))
+    sns.histplot(predictions_df["residual"], bins=45, kde=True, color="#4e8fb5", ax=axes[0])
+    axes[0].axvline(0, color="#1f1f1f", linestyle="--", linewidth=1.3)
+    axes[0].set_title("Residual Distribution")
+    axes[0].set_xlabel("Residual (actual - predicted)")
+    axes[0].set_ylabel("Validation rows")
+
+    axes[1].scatter(
+        predictions_df["y_pred_stack"],
+        predictions_df["residual"],
+        s=14,
+        alpha=0.18,
+        color="#c45a4a",
+        edgecolors="none",
+    )
+    axes[1].axhline(0, color="#1f1f1f", linestyle="--", linewidth=1.3)
+    axes[1].set_title("Residuals vs Predicted InterestRate")
+    axes[1].set_xlabel("Predicted InterestRate")
+    axes[1].set_ylabel("Residual (actual - predicted)")
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "task_b_residual_diagnostics.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+    error_df = predictions_df.copy()
+    error_df["rate_bucket"] = pd.Categorical(
+        error_df["rate_bucket"],
+        categories=TASK_B_RATE_BUCKET_ORDER,
+        ordered=True,
+    )
+    bucket_counts = error_df["rate_bucket"].value_counts().reindex(TASK_B_RATE_BUCKET_ORDER)
+    fig, ax = plt.subplots(figsize=(9.8, 5.7))
+    sns.boxplot(
+        data=error_df,
+        x="rate_bucket",
+        y="abs_error",
+        order=TASK_B_RATE_BUCKET_ORDER,
+        color="#6db2a8",
+        showfliers=False,
+        ax=ax,
+    )
+    y_top = float(error_df["abs_error"].quantile(0.98))
+    for idx, count in enumerate(bucket_counts):
+        ax.text(idx, y_top, f"n={int(count)}", ha="center", va="bottom", fontsize=9)
+    ax.set_title("Absolute Error by True InterestRate Bucket")
+    ax.set_xlabel("True InterestRate bucket")
+    ax.set_ylabel("Absolute error")
+    fig.tight_layout()
+    fig.savefig(FIG_DIR / "task_b_error_by_bucket.png", dpi=220, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -329,6 +571,7 @@ def main() -> None:
     SUMMARY_PATH.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
     generate_eda_figures(df)
+    generate_task_b_figures(df)
     generate_optuna_slice_figure()
     generate_best_model_confusion_matrix()
 
