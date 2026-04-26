@@ -343,6 +343,7 @@ def build_xgb_classifier(
     random_state: int,
     model_threads: int,
     scale_pos_weight: float | None = None,
+    early_stopping_rounds: int | None = None,
 ) -> Any:
     _require_xgboost()
 
@@ -361,6 +362,8 @@ def build_xgb_classifier(
     model_params.setdefault("random_state", random_state)
     model_params.setdefault("n_jobs", model_threads)
     model_params.setdefault("verbosity", 0)
+    if early_stopping_rounds is not None:
+        model_params["early_stopping_rounds"] = int(early_stopping_rounds)
     return XGBClassifier(**model_params)
 
 
@@ -437,12 +440,12 @@ class TaskAXGBClassifier(BaseEstimator, ClassifierMixin):
                 random_state=self.random_state,
                 model_threads=self.model_threads,
                 scale_pos_weight=scale_pos_weight,
+                early_stopping_rounds=self.early_stopping_rounds,
             )
             model.fit(
                 X_train_proc,
                 y,
                 eval_set=[(X_train_proc, y), (X_val_proc, pd.Series(y_val).reset_index(drop=True).astype(int))],
-                early_stopping_rounds=self.early_stopping_rounds,
                 verbose=False,
             )
             best_iteration, best_n_estimators = extract_best_iteration(
@@ -483,12 +486,12 @@ class TaskAXGBClassifier(BaseEstimator, ClassifierMixin):
                 random_state=self.random_state,
                 model_threads=self.model_threads,
                 scale_pos_weight=scale_pos_weight,
+                early_stopping_rounds=self.early_stopping_rounds,
             )
             temp_model.fit(
                 X_fit_proc,
                 y_fit.reset_index(drop=True),
                 eval_set=[(X_fit_proc, y_fit.reset_index(drop=True)), (X_es_proc, y_es.reset_index(drop=True))],
-                early_stopping_rounds=self.early_stopping_rounds,
                 verbose=False,
             )
             best_iteration, best_n_estimators = extract_best_iteration(
@@ -867,8 +870,8 @@ def suggest_xgb_params(
     n_classes: int,
 ) -> dict[str, Any]:
     params = {
-        "n_estimators": trial.suggest_int("n_estimators", 200, 1200),
-        "max_depth": trial.suggest_int("max_depth", 3, 10),
+        "n_estimators": trial.suggest_int("n_estimators", 2000, 5000),
+        "max_depth": trial.suggest_int("max_depth", 100, 400),
         "learning_rate": trial.suggest_float("learning_rate", 1e-2, 3e-1, log=True),
         "min_child_weight": trial.suggest_float("min_child_weight", 1.0, 12.0),
         "subsample": trial.suggest_float("subsample", 0.6, 1.0),

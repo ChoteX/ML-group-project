@@ -70,7 +70,7 @@ Task A is the part of the project with the richest experimentation history, so i
 | --- | --- | ---: | ---: | --- |
 | FC neural network | 5-fold CV mean | `0.8157` | `0.8166` | `MLPClassifier` with 45 engineered pairwise interactions |
 | Tree stack + CatBoost | 5-fold CV mean | `0.8231` | `0.8247` | RF + XGB + LGBM + native-categorical CatBoost, linear meta-layer |
-| Task B-style StackingClassifier | 5-fold CV mean | `0.8323` | `0.8330` | XGB + RF + HGB + logistic + MLP, multinomial logistic meta-learner |
+| Tree stack + neural network | 5-fold CV mean | `0.8323` | `0.8330` | XGB + RF + HGB + logistic + MLP, multinomial logistic meta-learner |
 
 The final Task A model was the **Task B-style StackingClassifier**, which improved on the tree stack by **0.0092** accuracy and **0.0082** macro F1, and improved on the FC neural network by **0.0166** accuracy and **0.0164** macro F1. The best explanation is diversity: tree models captured nonlinear tabular structure, while the logistic and MLP branches added smoother global boundaries and complementary probability estimates for the meta-learner.
 

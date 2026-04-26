@@ -1,0 +1,77 @@
+{
+  "study_name": "taskA_xgb_optuna",
+  "metric_name": "accuracy",
+  "best_value": 0.7943714285714285,
+  "best_params": {
+    "n_estimators": 1035,
+    "max_depth": 6,
+    "learning_rate": 0.03992306657672681,
+    "min_child_weight": 4.442311657343007,
+    "subsample": 0.8524337374155861,
+    "colsample_bytree": 0.8837262828873732,
+    "gamma": 1.1909377972289308,
+    "reg_alpha": 0.015936847132187043,
+    "reg_lambda": 0.0318485426459654
+  },
+  "best_user_attrs": {
+    "mean_accuracy": 0.7943714285714285,
+    "mean_macro_f1": 0.7950481876151049,
+    "mean_selected_score": 0.7943714285714285,
+    "fold_rows": [
+      {
+        "fold": 1,
+        "accuracy": 0.797,
+        "macro_f1": 0.7979540503590178,
+        "selected_score": 0.797,
+        "best_n_estimators": 1032
+      },
+      {
+        "fold": 2,
+        "accuracy": 0.7952857142857143,
+        "macro_f1": 0.7956700792250203,
+        "selected_score": 0.7952857142857143,
+        "best_n_estimators": 1035
+      },
+      {
+        "fold": 3,
+        "accuracy": 0.794,
+        "macro_f1": 0.794893724884525,
+        "selected_score": 0.794,
+        "best_n_estimators": 1034
+      },
+      {
+        "fold": 4,
+        "accuracy": 0.7914285714285715,
+        "macro_f1": 0.7918425211486644,
+        "selected_score": 0.7914285714285715,
+        "best_n_estimators": 1035
+      },
+      {
+        "fold": 5,
+        "accuracy": 0.7941428571428572,
+        "macro_f1": 0.794880562458297,
+        "selected_score": 0.7941428571428572,
+        "best_n_estimators": 1033
+      }
+    ]
+  },
+  "n_trials": 25,
+  "elapsed_seconds": 3327.398,
+  "config": {
+    "study_name": "taskA_xgb_optuna",
+    "artifact_tag": "taskA_xgb_optuna",
+    "n_trials": 25,
+    "timeout": null,
+    "cv_folds": 5,
+    "metric_name": "accuracy",
+    "random_state": 42,
+    "model_threads": 2,
+    "verbose": false,
+    "enable_early_stopping": true,
+    "early_stopping_rounds": 40,
+    "internal_early_stopping_size": 0.1,
+    "include_scale_pos_weight": false,
+    "fixed_params": {}
+  },
+  "trials_csv": "/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_optuna_optuna_trials.csv"
+}
