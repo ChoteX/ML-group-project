@@ -32,6 +32,24 @@ To make multivariate structure legible in the report, the correlation heatmap be
 
 *Figure 4. Correlation matrix for the most informative numeric features and both targets. Late-payment counts, charge-offs, collections, utilization, and `RiskTier` form the dominant risk cluster, while `AnnualIncome` moves in the opposite direction.*
 
+Task B also benefits from looking directly at the target itself. `InterestRate` is strongly right-skewed: the mean is **7.31**, the median is **6.08**, the interquartile range is **2.95**, and **33.3%** of the training rows sit exactly at the pricing floor of **4.99**. Even the upper tail is fairly concentrated, with the 90th percentile at **10.27** and the 95th percentile at **12.96**, but a small number of high-rate loans extend all the way to **35.99**.
+
+![InterestRate distribution](figures/task_b_interest_rate_distribution.png)
+
+*Figure 5. The Task B target is concentrated near the floor rate of `4.99`, with a long but thin right tail into high-risk pricing.*
+
+The link between the two tasks is visible when `InterestRate` is grouped by `RiskTier`. Median pricing increases almost monotonically from tiers `0` through `4`, but tier `4` is also much wider than the others, which means the regression problem becomes harder precisely where borrower risk is most extreme.
+
+![InterestRate by RiskTier](figures/task_b_interest_rate_by_risktier.png)
+
+*Figure 6. Interest rates rise systematically with `RiskTier`, and the highest-risk group has the broadest pricing spread.*
+
+The strongest Task B drivers are still delinquency and derogatory-history variables. `NumberOfChargeOffs` (`+0.648`), `NumberOfLatePayments30Days` (`+0.588`), `NumberOfLatePayments90Days` (`+0.550`), and `NumberOfLatePayments60Days` (`+0.464`) dominate the numeric correlations. `AnnualIncome` is the strongest negative relationship at `-0.148`, which is directionally sensible but much weaker than the credit-damage variables.
+
+![Task B top correlations](figures/task_b_top_correlations.png)
+
+*Figure 7. Task B is driven primarily by severe credit-history variables, while income acts as a weaker offsetting signal.*
+
 These observations directly shaped preprocessing:
 
 - **Task A** used split-first preprocessing to avoid leakage, explicit `"Missing"` categories for absent labels, missing-value indicators for numeric features, structural zero-fill where absence meant “does not have this item”, median imputation for remaining numerics, 99th-percentile clipping for heavy-tailed money and ratio variables, `log1p` on money-like features, and strict schema alignment after one-hot encoding.
@@ -101,17 +119,18 @@ The final recorded Task B result on an 80/20 split was:
 
 | Final Task B model | RMSE | MAE | R² |
 | --- | ---: | ---: | ---: |
-| StackingRegressor (XGB + RF + HGB + LR + MLP -> Ridge) | `1.7052` | `1.3433` | `0.8248` |
+| StackingRegressor (XGB + RF + HGB + LR + MLP -> Ridge) | `1.6965` | `1.3422` | `0.8266` |
 
 Locally reproduced single-model baselines on the same split show that the full stack still performed best:
 
 | Model | RMSE | MAE | R² |
 | --- | ---: | ---: | ---: |
 | HistGradientBoostingRegressor | `1.7196` | `1.3472` | `0.8219` |
-| RandomForestRegressor | `1.7929` | `1.4025` | `0.8064` |
-| MLPRegressor | `1.8584` | `1.4310` | `0.7919` |
+| XGBRegressor | `1.7649` | `1.3787` | `0.8124` |
+| RandomForestRegressor | `1.7917` | `1.4016` | `0.8066` |
+| MLPRegressor | `1.8299` | `1.4274` | `0.7983` |
 | LinearRegression | `2.5464` | `1.7083` | `0.6094` |
-| StackingRegressor (final notebook artifact) | `1.7052` | `1.3433` | `0.8248` |
+| StackingRegressor (final notebook artifact) | `1.6965` | `1.3422` | `0.8266` |
 
 ## 4. Hyperparameter Tuning
 
@@ -183,7 +202,7 @@ The figure below was generated from the finished Optuna run stored in `task_a/ar
 
 ![Optuna slice plot](figures/optuna_sliced.png)
 
-*Figure 5. Slice plots reconstructed from the completed Optuna study. Each panel shows one searched hyperparameter against mean 5-fold CV accuracy.*
+*Figure 8. Slice plots reconstructed from the completed Optuna study. Each panel shows one searched hyperparameter against mean 5-fold CV accuracy.*
 
 The main takeaway is that tuning substantially improved the standalone XGBoost branch, but the single-model ceiling remained below the best stacked ensembles. This is an important result in itself: in this repository, **representation quality plus ensemble diversity mattered more than tuning one tree model alone**.
 
@@ -205,7 +224,7 @@ The Task A experiments used mixed evaluation protocols, so the table below shoul
 
 ![Task A classifier accuracy comparison](figures/task_a_classifier_accuracy_comparison.png)
 
-*Figure 6. Horizontal accuracy comparison of all recorded Task A classifiers. Colors indicate evaluation protocol, so the plot should be interpreted together with the table above.*
+*Figure 9. Horizontal accuracy comparison of all recorded Task A classifiers. Colors indicate evaluation protocol, so the plot should be interpreted together with the table above.*
 
 The best final model is the **Task B-style StackingClassifier**. It improved on the Tree stack + CatBoost baseline by **+0.0143** accuracy and **+0.0133** macro F1, and improved on the FC neural network by **+0.0217** accuracy and **+0.0214** macro F1.
 
@@ -213,7 +232,7 @@ Its confusion matrix is shown below.
 
 ![Best final model confusion matrix](figures/best_final_confusion_matrix.png)
 
-*Figure 7. Confusion matrix of the best final Task A classifier (Task B-style StackingClassifier).*
+*Figure 10. Confusion matrix of the best final Task A classifier (Task B-style StackingClassifier).*
 
 This final model remained strongest on the extreme class `VeryHigh(4)` and still struggled most on the middle buckets, especially `Low(1)` and `Moderate(2)`. That pattern is expected in credit risk: the edge cases are easier to separate than the borderline applicants in the middle of the distribution.
 
@@ -223,9 +242,38 @@ Task B remained strong as well. The final regression stack achieved:
 
 | Final Task B model | RMSE | MAE | R² |
 | --- | ---: | ---: | ---: |
-| StackingRegressor (XGB + RF + HGB + LR + MLP -> Ridge) | `1.7052` | `1.3433` | `0.8248` |
+| StackingRegressor (XGB + RF + HGB + LR + MLP -> Ridge) | `1.6965` | `1.3422` | `0.8266` |
 
-The best reproduced single-model baseline was `HistGradientBoostingRegressor` at `R² = 0.8219`, so the stack still delivered the best overall result, even if the margin was smaller than in Task A.
+The full comparison across the five baseline regressors and the final stack is shown below. `HistGradientBoostingRegressor` was the strongest single model at `R² = 0.8219`, but the stack still achieved the best RMSE, the best MAE, and the best `R²`.
+
+![Task B model comparison](figures/task_b_model_comparison.png)
+
+*Figure 11. Task B model comparison on the shared 80/20 validation split. The final stack is best across all three reported regression metrics.*
+
+The holdout diagnostics are also strong:
+
+- mean residual (`actual - predicted`): `-0.0505`
+- median absolute error: `1.1312`
+- 90th percentile absolute error: `2.6939`
+- predictions within `±1.0` interest-rate point: `38.36%`
+
+The actual-vs-predicted view shows that most of the validation density is captured well in the low-to-mid-rate region, while the rare high-rate cases produce visibly wider dispersion.
+
+![Task B actual vs predicted](figures/task_b_actual_vs_predicted.png)
+
+*Figure 12. Hexbin view of the final Task B stack. Most loans sit close to the diagonal, but the sparse high-rate tail is harder to price tightly.*
+
+Residual diagnostics tell the same story. The residual distribution stays close to zero on average, but variance expands as predicted rates move upward, which is typical when the right tail is both noisier and much less common in training data.
+
+![Task B residual diagnostics](figures/task_b_residual_diagnostics.png)
+
+*Figure 13. Residual distribution and residuals vs predicted values for the final Task B stack. Errors widen in the upper-rate region even though the overall bias remains small.*
+
+The bucketed error analysis makes that asymmetry explicit. Errors are tightest in the dominant `5-8` range and still relatively stable at the exact floor rate `4.99`, but they grow sharply once the true rate moves into `8-12`, `12-20`, and especially `20+`. That is consistent with the much smaller sample counts in those buckets (`291` rows in `12-20` and only `134` rows in `20+`).
+
+![Task B absolute error by bucket](figures/task_b_error_by_bucket.png)
+
+*Figure 14. Absolute error by true interest-rate bucket. The model is strongest in the dense low-rate regime and weakest in the sparse high-rate tail.*
 
 ### 5.3 Summary Reflection & Learnings
 
@@ -233,6 +281,7 @@ The best reproduced single-model baseline was `HistGradientBoostingRegressor` at
 - **Feature engineering mattered, but ensemble diversity mattered more.** Missingness indicators, zero-fill, clipping, and `log1p` created a better input space; the best gains after that came from combining diverse model families.
 - **A tuned single XGBoost was not enough to beat the best stacks.** Optuna improved the standalone XGBoost branch substantially, but it still stayed below the best heterogeneous ensembles.
 - **The hardest region of the task is the middle of the label space.** `Low(1)` and `Moderate(2)` remain the most confusable classes, which is visible in every serious classifier report.
+- **Task B becomes harder in the high-rate tail.** The regression stack is very stable in the floor and `5-8` regimes, but absolute error widens materially once true rates move above `8`, especially in the sparse `20+` bucket.
 - **There is still room to improve the tuning stage.** The Optuna run used only 25 trials, tuned only the standalone XGBoost branch, and searched a moderate space. Future work should widen the search ranges, increase trial count, and tune the stronger stacked models as well.
 
-Overall, the repository clearly exceeds the assignment baselines on both tasks. The strongest Task A result is the **Task B-style StackingClassifier** at **0.8374 accuracy / 0.8380 macro F1**, and the strongest Task B result is the regression stack at **`R² = 0.8248`**. The core lesson from the project is that in structured financial tabular data, **careful preprocessing and heterogeneous ensembles were more valuable than relying on one model family alone**.
+Overall, the repository clearly exceeds the assignment baselines on both tasks. The strongest Task A result is the **Task B-style StackingClassifier** at **0.8374 accuracy / 0.8380 macro F1**, and the strongest Task B result is the regression stack at **`R² = 0.8266`**. The core lesson from the project is that in structured financial tabular data, **careful preprocessing and heterogeneous ensembles were more valuable than relying on one model family alone**.

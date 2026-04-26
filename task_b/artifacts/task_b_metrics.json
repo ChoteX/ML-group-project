@@ -1,0 +1,75 @@
+{
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "train_rows": 28000,
+    "validation_rows": 7000
+  },
+  "model_order": [
+    "LinearRegression",
+    "MLPRegressor",
+    "RandomForestRegressor",
+    "XGBRegressor",
+    "HistGradientBoostingRegressor",
+    "StackingRegressor"
+  ],
+  "final_model_name": "StackingRegressor",
+  "final_model_spec": "XGB + RF + HGB + LR + MLP -> Ridge(alpha=1.0)",
+  "best_single_model": "HistGradientBoostingRegressor",
+  "models": {
+    "LinearRegression": {
+      "rmse": 2.546401030225434,
+      "mae": 1.7082712617113467,
+      "r2": 0.6093839183204226
+    },
+    "MLPRegressor": {
+      "rmse": 1.8298850548411247,
+      "mae": 1.4273987842571811,
+      "r2": 0.7982822399622185
+    },
+    "RandomForestRegressor": {
+      "rmse": 1.7916682971506737,
+      "mae": 1.4015808642857062,
+      "r2": 0.8066199203455421
+    },
+    "XGBRegressor": {
+      "rmse": 1.764911691066125,
+      "mae": 1.3786534558078216,
+      "r2": 0.8123526323166711
+    },
+    "HistGradientBoostingRegressor": {
+      "rmse": 1.7195794424715798,
+      "mae": 1.3471709254479889,
+      "r2": 0.8218683849119093
+    },
+    "StackingRegressor": {
+      "rmse": 1.6964598973110026,
+      "mae": 1.3421623418284612,
+      "r2": 0.8266261025717563
+    }
+  },
+  "target_summary": {
+    "count": 35000,
+    "min": 4.99,
+    "q1": 4.99,
+    "median": 6.08,
+    "mean": 7.313440000000001,
+    "q3": 7.94,
+    "max": 35.99,
+    "std": 4.1935451338761425,
+    "iqr": 2.95,
+    "p90": 10.27,
+    "p95": 12.96,
+    "floor_value": 4.99,
+    "floor_pct": 33.27428571428571
+  },
+  "final_error_summary": {
+    "mean_residual": -0.0504749633492083,
+    "median_absolute_error": 1.1312078115755595,
+    "p90_absolute_error": 2.693918631423075,
+    "within_1pt_pct": 38.357142857142854
+  },
+  "artifacts": {
+    "validation_predictions_csv": "/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_b/artifacts/task_b_validation_predictions.csv"
+  }
+}

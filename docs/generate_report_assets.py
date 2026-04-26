@@ -285,11 +285,15 @@ def generate_task_b_figures(df: pd.DataFrame) -> None:
         data=plot_df,
         x="RiskTier",
         y="InterestRate",
+        hue="RiskTier",
         palette=["#315c8f", "#4e8fb5", "#6db2a8", "#f0a35e", "#c45a4a"],
+        dodge=False,
         width=0.65,
         showfliers=False,
         ax=ax,
     )
+    if ax.get_legend() is not None:
+        ax.get_legend().remove()
     ax.plot(range(len(medians)), medians.to_numpy(), color="#1f1f1f", marker="o", linewidth=1.5, markersize=5)
     ax.set_title("InterestRate Increases Systematically with RiskTier")
     ax.set_xlabel("RiskTier")

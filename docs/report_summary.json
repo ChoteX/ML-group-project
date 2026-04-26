@@ -14,7 +14,12 @@
     "median": 6.08,
     "mean": 7.3134,
     "q3": 7.94,
-    "max": 35.99
+    "max": 35.99,
+    "std": 4.1935,
+    "iqr": 2.95,
+    "p90": 10.27,
+    "p95": 12.96,
+    "floor_pct": 33.27
   },
   "top_missing_pct": {
     "StudentLoanOutstandingBalance": 59.98,
