@@ -21,13 +21,13 @@ Train a single-model Task A classifier using `xgboost.XGBClassifier` while reusi
   "enable_early_stopping": true,
   "early_stopping_rounds": 40,
   "internal_early_stopping_size": 0.1,
-  "run_full_train_prediction": true,
+  "run_full_train_prediction": false,
   "preserve_interest_rate": true,
   "save_model_bundle": true,
   "xgb_params": {
-    "n_estimators": 150,
-    "max_depth": 4,
-    "learning_rate": 0.05,
+    "n_estimators": 1035,
+    "max_depth": 6,
+    "learning_rate": 0.03992306657672681,
     "min_child_weight": 4.442311657343007,
     "subsample": 0.8524337374155861,
     "colsample_bytree": 0.8837262828873732,
@@ -40,35 +40,35 @@ Train a single-model Task A classifier using `xgboost.XGBClassifier` while reusi
 ```
 
 ## Validation Metrics
-- Accuracy: `0.6920`
-- Macro F1: `0.6892`
-- Selected score (`accuracy`): `0.6920`
+- Accuracy: `0.7896`
+- Macro F1: `0.7903`
+- Selected score (`accuracy`): `0.7896`
 - Early stopping used: `True`
 - Early stopping source: `external_validation`
-- Best iteration: `149`
-- Best n_estimators used for final model: `150`
+- Best iteration: `1034`
+- Best n_estimators used for final model: `1035`
 - Feature count after preprocessing: `115`
 
 ## Confusion Matrix
 | index | VeryLow(0) | Low(1) | Moderate(2) | High(3) | VeryHigh(4) |
 | --- | --- | --- | --- | --- | --- |
-| VeryLow(0) | 987 | 318 | 17 | 23 | 0 |
-| Low(1) | 404 | 850 | 159 | 43 | 0 |
-| Moderate(2) | 106 | 318 | 675 | 295 | 6 |
-| High(3) | 15 | 19 | 181 | 1049 | 98 |
-| VeryHigh(4) | 1 | 0 | 11 | 142 | 1283 |
+| VeryLow(0) | 1110 | 219 | 15 | 1 | 0 |
+| Low(1) | 231 | 1028 | 182 | 15 | 0 |
+| Moderate(2) | 12 | 236 | 961 | 188 | 3 |
+| High(3) | 2 | 16 | 165 | 1116 | 63 |
+| VeryHigh(4) | 0 | 0 | 7 | 118 | 1312 |
 
 ## Classification Report
 | label | precision | recall | f1-score | support |
 | --- | --- | --- | --- | --- |
-| VeryLow(0) | 0.6523 | 0.7338 | 0.6907 | 1345 |
-| Low(1) | 0.5648 | 0.5838 | 0.5741 | 1456 |
-| Moderate(2) | 0.6472 | 0.4821 | 0.5526 | 1400 |
-| High(3) | 0.6759 | 0.7702 | 0.7200 | 1362 |
-| VeryHigh(4) | 0.9250 | 0.8928 | 0.9086 | 1437 |
-| accuracy | 0.6920 | 0.6920 | 0.6920 | 0.6920 |
-| macro avg | 0.6930 | 0.6926 | 0.6892 | 7000 |
-| weighted avg | 0.6937 | 0.6920 | 0.6893 | 7000 |
+| VeryLow(0) | 0.8192 | 0.8253 | 0.8222 | 1345 |
+| Low(1) | 0.6858 | 0.7060 | 0.6958 | 1456 |
+| Moderate(2) | 0.7226 | 0.6864 | 0.7040 | 1400 |
+| High(3) | 0.7761 | 0.8194 | 0.7971 | 1362 |
+| VeryHigh(4) | 0.9521 | 0.9130 | 0.9321 | 1437 |
+| accuracy | 0.7896 | 0.7896 | 0.7896 | 0.7896 |
+| macro avg | 0.7911 | 0.7900 | 0.7903 | 7000 |
+| weighted avg | 0.7910 | 0.7896 | 0.7900 | 7000 |
 
 ## Saved Artifacts
 - Validation metrics JSON: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_trainval_validation_metrics.json`
@@ -76,8 +76,3 @@ Train a single-model Task A classifier using `xgboost.XGBClassifier` while reusi
 - Validation model JSON: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_trainval_validation_model.json`
 - Validation preprocessor JSON: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_trainval_validation_preprocessor.json`
 - Validation bundle: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_trainval_validation_bundle.joblib`
-- Submission CSV: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/submissions/submission.csv`
-- Artifact copy of submission: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_trainval_submission.csv`
-- Full-train model JSON: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_trainval_full_train_model.json`
-- Full-train preprocessor JSON: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_trainval_full_train_preprocessor.json`
-- Full-train bundle: `/Users/dachi.tchotashvili/local docs/VS_main/ML final/ML-group-project/task_a/artifacts/taskA_xgb_trainval_full_train_bundle.joblib`

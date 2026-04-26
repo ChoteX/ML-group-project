@@ -1,0 +1,44 @@
+[
+  {
+    "model":"Single XGBoost",
+    "protocol":"Single 80\/20 validation",
+    "accuracy":0.7895714286,
+    "macro_f1":0.7902626931
+  },
+  {
+    "model":"Optuna-tuned single XGBoost",
+    "protocol":"5-fold CV mean (best trial)",
+    "accuracy":0.7943714286,
+    "macro_f1":0.7950481876
+  },
+  {
+    "model":"Leakage-free baseline",
+    "protocol":"Single 80\/20 validation",
+    "accuracy":0.8103,
+    "macro_f1":0.812
+  },
+  {
+    "model":"Upgraded one-hot + clipping",
+    "protocol":"Single 80\/20 validation",
+    "accuracy":0.8121,
+    "macro_f1":0.8139
+  },
+  {
+    "model":"FC neural network",
+    "protocol":"5-fold CV mean",
+    "accuracy":0.8157,
+    "macro_f1":0.8166
+  },
+  {
+    "model":"Tree stack + CatBoost",
+    "protocol":"5-fold CV mean",
+    "accuracy":0.8231142857,
+    "macro_f1":0.8247115562
+  },
+  {
+    "model":"Task B-style StackingClassifier",
+    "protocol":"5-fold CV mean",
+    "accuracy":0.8374,
+    "macro_f1":0.838
+  }
+]
