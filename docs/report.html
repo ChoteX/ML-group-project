@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CreditSense: Loan Risk Assessment Challenge</title>
+    <style>
+
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --border: #d0d7de;
+  --border-muted: #d8dee4;
+  --canvas-subtle: #f6f8fa;
+  --accent: #0969da;
+  --blockquote: #656d76;
+  --shadow: 0 1px 2px rgba(31, 35, 40, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--canvas-subtle);
+  color: var(--fg);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.page {
+  padding: 32px 20px 56px;
+}
+
+.markdown-body {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 40px 48px;
+  background: var(--bg);
+  border: 1px solid var(--border-muted);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  word-wrap: break-word;
+}
+
+.markdown-body > *:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-body h1 {
+  margin-top: 0;
+  padding-bottom: 0.3em;
+  font-size: 2em;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown-body h2 {
+  padding-bottom: 0.3em;
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown-body h3 {
+  font-size: 1.25em;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body table,
+.markdown-body blockquote,
+.markdown-body pre {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+}
+
+.markdown-body li + li {
+  margin-top: 0.25em;
+}
+
+.markdown-body li > p {
+  margin-top: 16px;
+}
+
+.markdown-body hr {
+  height: 0.25em;
+  margin: 24px 0;
+  padding: 0;
+  background: var(--border);
+  border: 0;
+}
+
+.markdown-body blockquote {
+  margin-left: 0;
+  padding: 0 1em;
+  color: var(--blockquote);
+  border-left: 0.25em solid var(--border);
+}
+
+.markdown-body table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid var(--border);
+}
+
+.markdown-body table th {
+  font-weight: 600;
+  background: var(--canvas-subtle);
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background: #f6f8fa;
+}
+
+.markdown-body code,
+.markdown-body tt {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 85%;
+  background: rgba(175, 184, 193, 0.2);
+  border-radius: 6px;
+}
+
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background: #f6f8fa;
+  border-radius: 6px;
+}
+
+.markdown-body pre code {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 20px auto 10px;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}
+
+.markdown-body em {
+  color: var(--muted);
+}
+
+.markdown-body .footnote {
+  color: var(--muted);
+  font-size: 0.95em;
+}
+
+@media (max-width: 840px) {
+  .page {
+    padding: 16px 10px 24px;
+  }
+
+  .markdown-body {
+    padding: 24px 18px;
+    border-radius: 8px;
+  }
+}
+
+@media print {
+  body,
+  html {
+    background: #fff;
+  }
+
+  .page {
+    padding: 0;
+  }
+
+  .markdown-body {
+    max-width: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+}
+
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.codehilite .hll { background-color: #ffffcc }
+.codehilite { background: #f8f8f8; }
+.codehilite .c { color: #3D7B7B; font-style: italic } /* Comment */
+.codehilite .err { border: 1px solid #FF0000 } /* Error */
+.codehilite .k { color: #008000; font-weight: bold } /* Keyword */
+.codehilite .o { color: #666666 } /* Operator */
+.codehilite .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.codehilite .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.codehilite .cp { color: #9C6500 } /* Comment.Preproc */
+.codehilite .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.codehilite .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.codehilite .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.codehilite .gd { color: #A00000 } /* Generic.Deleted */
+.codehilite .ge { font-style: italic } /* Generic.Emph */
+.codehilite .gr { color: #E40000 } /* Generic.Error */
+.codehilite .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.codehilite .gi { color: #008400 } /* Generic.Inserted */
+.codehilite .go { color: #717171 } /* Generic.Output */
+.codehilite .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.codehilite .gs { font-weight: bold } /* Generic.Strong */
+.codehilite .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.codehilite .gt { color: #0044DD } /* Generic.Traceback */
+.codehilite .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.codehilite .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.codehilite .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.codehilite .kp { color: #008000 } /* Keyword.Pseudo */
+.codehilite .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.codehilite .kt { color: #B00040 } /* Keyword.Type */
+.codehilite .m { color: #666666 } /* Literal.Number */
+.codehilite .s { color: #BA2121 } /* Literal.String */
+.codehilite .na { color: #687822 } /* Name.Attribute */
+.codehilite .nb { color: #008000 } /* Name.Builtin */
+.codehilite .nc { color: #0000FF; font-weight: bold } /* Name.Class */
+.codehilite .no { color: #880000 } /* Name.Constant */
+.codehilite .nd { color: #AA22FF } /* Name.Decorator */
+.codehilite .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.codehilite .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.codehilite .nf { color: #0000FF } /* Name.Function */
+.codehilite .nl { color: #767600 } /* Name.Label */
+.codehilite .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+.codehilite .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.codehilite .nv { color: #19177C } /* Name.Variable */
+.codehilite .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+.codehilite .w { color: #bbbbbb } /* Text.Whitespace */
+.codehilite .mb { color: #666666 } /* Literal.Number.Bin */
+.codehilite .mf { color: #666666 } /* Literal.Number.Float */
+.codehilite .mh { color: #666666 } /* Literal.Number.Hex */
+.codehilite .mi { color: #666666 } /* Literal.Number.Integer */
+.codehilite .mo { color: #666666 } /* Literal.Number.Oct */
+.codehilite .sa { color: #BA2121 } /* Literal.String.Affix */
+.codehilite .sb { color: #BA2121 } /* Literal.String.Backtick */
+.codehilite .sc { color: #BA2121 } /* Literal.String.Char */
+.codehilite .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.codehilite .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.codehilite .s2 { color: #BA2121 } /* Literal.String.Double */
+.codehilite .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.codehilite .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.codehilite .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.codehilite .sx { color: #008000 } /* Literal.String.Other */
+.codehilite .sr { color: #A45A77 } /* Literal.String.Regex */
+.codehilite .s1 { color: #BA2121 } /* Literal.String.Single */
+.codehilite .ss { color: #19177C } /* Literal.String.Symbol */
+.codehilite .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.codehilite .fm { color: #0000FF } /* Name.Function.Magic */
+.codehilite .vc { color: #19177C } /* Name.Variable.Class */
+.codehilite .vg { color: #19177C } /* Name.Variable.Global */
+.codehilite .vi { color: #19177C } /* Name.Variable.Instance */
+.codehilite .vm { color: #19177C } /* Name.Variable.Magic */
+.codehilite .il { color: #666666 } /* Literal.Number.Integer.Long */
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <article class="markdown-body">
+<h1 id="creditsense-loan-risk-assessment-challenge">CreditSense: Loan Risk Assessment Challenge</h1>
+<p><strong>Team name:</strong> Tuffs &amp; Guka<br>
+<strong>Student names:</strong> Dachi Tchotashvili Giorgi Kekenadze Guka Matcharashvili</p>
+<p><strong>Kaggle username(s):</strong> Dachi Tchotashvili Giorgi Kekenadze Guram Matcharashvili</p>
+<h2 id="1-data-exploration-preprocessing">1. Data Exploration &amp; Preprocessing</h2>
+<p>The training set has <strong>35,000 rows</strong>, <strong>55 input features</strong>, and two targets. For Task A, the class balance is close to uniform across the five risk tiers, so we did <strong>not</strong> need reweighting or resampling just to make accuracy usable.</p>
+<ul>
+<li>tier 0 = 6,724, tier 1 = 7,283, tier 2 = 6,998, tier 3 = 6,812, tier 4 = 7,183.</li>
+</ul>
+<p>The first thing that actually mattered was missingness. Large blocks of nulls were clearly structural, not random noise. <code>StudentLoanOutstandingBalance</code> is missing for <strong>59.98%</strong> of rows, <code>CollateralType</code> for <strong>55.06%</strong>, <code>CollateralValue</code> for <strong>54.64%</strong>, and both <code>MortgageOutstandingBalance</code> and <code>PropertyValue</code> for about <strong>45%</strong>. We treated this as signal about whether an applicant even has a given liability or asset.</p>
+<p><img alt="Top missing features" src="figures/top_missing_features.svg"></p>
+<p><em>Figure 2. The largest missing blocks come from structurally absent collateral, asset, and loan-balance features.</em></p>
+<p>Next we checked the strongest target correlations. For <code>RiskTier</code>, the biggest drivers were <code>NumberOfLatePayments30Days</code> (<code>0.5707</code>), <code>RevolvingUtilizationRate</code> (<code>0.5540</code>), <code>NumberOfChargeOffs</code> (<code>0.4504</code>), and <code>NumberOfCollections</code> (<code>0.4413</code>). For <code>InterestRate</code>, the same credit-history variables became even stronger, especially <code>NumberOfChargeOffs</code> (<code>0.6484</code>) and <code>NumberOfLatePayments90Days</code> (<code>0.5500</code>). This told us early that delinquency severity was the main backbone of both tasks.</p>
+<p><img alt="Top target correlations" src="figures/top_target_correlations.svg"></p>
+<p><em>Figure 3. Both tasks are dominated by credit-history severity, but pricing is even more sensitive to severe derogatory marks such as charge-offs and 90-day delinquencies.</em></p>
+<p>We then condensed the multivariate view into a smaller numeric correlation matrix instead of dumping all 55 features. That made the important structure easier to read: late-payment counts, charge-offs, collections, utilization, and <code>RiskTier</code> form one tight risk cluster, while <code>AnnualIncome</code> pulls in the opposite direction.</p>
+<p><img alt="Correlation matrix" src="figures/correlation_matrix.png"></p>
+<p><em>Figure 4. Correlation matrix for the most informative numeric features and both targets. Late-payment counts, charge-offs, collections, utilization, and <code>RiskTier</code> form the dominant risk cluster, while <code>AnnualIncome</code> moves in the opposite direction.</em></p>
+<p>For Task B, we also inspected the target distribution directly because the regression loss landscape depends heavily on where the mass sits. <code>InterestRate</code> is strongly right-skewed: mean <strong>7.31</strong>, median <strong>6.08</strong>, IQR <strong>2.95</strong>, and <strong>33.3%</strong> of rows exactly at the floor rate <strong>4.99</strong>. The upper tail is thin but real: the 90th percentile is <strong>10.27</strong>, the 95th percentile is <strong>12.96</strong>, and the maximum is <strong>35.99</strong>. That immediately suggested that the model performs differently across interest-rate ranges.</p>
+<p><img alt="InterestRate distribution" src="figures/task_b_interest_rate_distribution.png"></p>
+<p><em>Figure 5. The Task B target is concentrated near the floor rate of <code>4.99</code>, with a long but thin right tail into high-risk pricing.</em></p>
+<p>We also checked how <code>InterestRate</code> moves with <code>RiskTier</code>. The median rate rises almost monotonically from tier <code>0</code> to tier <code>4</code>, but tier <code>4</code> also spreads out much more than the others. In practice, that meant the hardest regression cases were concentrated exactly where borrower risk was most extreme.</p>
+<p><img alt="InterestRate by RiskTier" src="figures/task_b_interest_rate_by_risktier.png"></p>
+<p><em>Figure 6. Interest rates rise systematically with <code>RiskTier</code>, and the highest-risk group has the broadest pricing spread.</em></p>
+<p>Finally, we separated the Task B-specific numeric correlations because they explain the regression stack much better than generic feature lists do. <code>NumberOfChargeOffs</code>, 30/60/90-day delinquencies, collections, and utilization dominate. <code>AnnualIncome</code> is the strongest negative term, but its magnitude is still much smaller than the credit-damage features.</p>
+<p><img alt="Task B top correlations" src="figures/task_b_top_correlations.png"></p>
+<p><em>Figure 7. Task B is driven primarily by severe credit-history variables, while income acts as a weaker offsetting signal.</em></p>
+<p>From these checks, our preprocessing decisions were straightforward:</p>
+<ul>
+<li>For <strong>Task A</strong>, we first fixed leakage, then used explicit <code>"Missing"</code> categories, numeric missingness indicators, structural zero-fill where absence meant “does not have this”, median imputation elsewhere, 99th-percentile clipping, <code>log1p</code> on money-like features, and strict post-one-hot schema alignment.</li>
+<li>For <strong>Task B</strong>, we kept the pipeline simpler: median imputation for numerics, most-frequent imputation plus one-hot encoding for categoricals, and <code>StandardScaler</code> only on the neural-network branch.</li>
+</ul>
+<h2 id="2-feature-engineering">2. Feature Engineering</h2>
+<table>
+<thead>
+<tr>
+<th>Addition</th>
+<th>Motivation</th>
+<th>Where used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One-hot encoding for categorical features</td>
+<td>Convert categorical labels into stable model-readable columns while preserving category identity after train / validation splitting</td>
+<td>Task A and Task B</td>
+</tr>
+<tr>
+<td>Numeric <code>*_is_missing</code> indicators</td>
+<td>Preserve signal from structured missingness instead of hiding it behind imputation</td>
+<td>Task A</td>
+</tr>
+<tr>
+<td>Structural zero-fill for balances / assets</td>
+<td>Encode “not present” as zero when that is the correct financial meaning</td>
+<td>Task A</td>
+</tr>
+<tr>
+<td>99th-percentile clipping</td>
+<td>Reduce sensitivity to extreme outliers in skewed financial variables</td>
+<td>Task A</td>
+</tr>
+<tr>
+<td><code>log1p</code> transforms on money-like features</td>
+<td>Compress long right tails and make relative differences more learnable</td>
+<td>Task A</td>
+</tr>
+<tr>
+<td>Pairwise products among top 10 correlated numeric features</td>
+<td>Let the FC neural network model interactions between delinquency, utilization, and affordability signals</td>
+<td>Task A FC neural network</td>
+</tr>
+<tr>
+<td>Task-specific scaling</td>
+<td>Standardize continuous inputs for logistic / MLP branches without distorting tree-model inputs</td>
+<td>Task A stack and Task B MLP</td>
+</tr>
+</tbody>
+</table>
+<p>For the FC neural-network branch, we selected 10 fold-stable high-signal features and created all <strong>45 pairwise products</strong> among them. That expanded the processed matrix from <strong>115</strong> base features to <strong>160</strong> final features. We did this because the neural model could use explicit interaction terms, while the tree ensembles were already able to discover many of those splits on their own.</p>
+<p>before/after check for the full upgraded Task A preprocessing bundle:</p>
+<table>
+<thead>
+<tr>
+<th>Task A preprocessing setup</th>
+<th>Evaluation protocol</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Macro F1</th>
+<th>Change vs previous</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Leakage-free repaired baseline</td>
+<td>Single 80/20 validation split</td>
+<td style="text-align: right;"><code>0.8103</code></td>
+<td style="text-align: right;"><code>0.8120</code></td>
+<td>Baseline</td>
+</tr>
+<tr>
+<td>One-hot + missing indicators + structural zero-fill + clipping + <code>log1p</code></td>
+<td>Single 80/20 validation split</td>
+<td style="text-align: right;"><code>0.8121</code></td>
+<td style="text-align: right;"><code>0.8139</code></td>
+<td><code>+0.0018</code> accuracy, <code>+0.0019</code> macro F1</td>
+</tr>
+</tbody>
+</table>
+<p>The gain is small, but it's an honest work.</p>
+<h2 id="3-model-selection">3. Model Selection</h2>
+<p>We tried several model family, or ensemble diversity.</p>
+<h3 id="31-task-a-classification-risktier">3.1 Task A: Classification (<code>RiskTier</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Evaluation protocol</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Macro F1</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FC neural network</td>
+<td>5-fold CV mean</td>
+<td style="text-align: right;"><code>0.8157</code></td>
+<td style="text-align: right;"><code>0.8166</code></td>
+<td><code>MLPClassifier</code> with 45 engineered pairwise interactions</td>
+</tr>
+<tr>
+<td>Tree stack + CatBoost</td>
+<td>5-fold CV mean</td>
+<td style="text-align: right;"><code>0.8231</code></td>
+<td style="text-align: right;"><code>0.8247</code></td>
+<td>RF + XGB + LGBM + native-categorical CatBoost, linear meta-layer</td>
+</tr>
+<tr>
+<td>Tree stack + MLP</td>
+<td>5-fold CV mean</td>
+<td style="text-align: right;"><code>0.8374</code></td>
+<td style="text-align: right;"><code>0.8380</code></td>
+<td>XGB + RF + HGB + logistic + MLP, multinomial logistic meta-learner</td>
+</tr>
+<tr>
+<td>Optuna-tuned single XGBoost</td>
+<td>5-fold CV best trial</td>
+<td style="text-align: right;"><code>0.7944</code></td>
+<td style="text-align: right;"><code>0.7950</code></td>
+<td>Strongest standalone XGB configuration found by TPE search</td>
+</tr>
+<tr>
+<td>Standalone XGBoost validation run</td>
+<td>Single 80/20 validation split</td>
+<td style="text-align: right;"><code>0.7896</code></td>
+<td style="text-align: right;"><code>0.7903</code></td>
+<td>Rerun with Optuna-best parameters and Task A preprocessing</td>
+</tr>
+</tbody>
+</table>
+<p>Our best final classifier was the <strong>Tree stack + MLP StackingClassifier</strong> because it mixed different failure modes: tree models captured nonlinear tabular structure, while the logistic and MLP branches added smoother global boundaries and different probability shapes for the meta-learner.</p>
+<h3 id="32-task-b-regression-interestrate">3.2 Task B: Regression (<code>InterestRate</code>)</h3>
+<p>For Task B, we kept the same mindset: combine models that see the tabular space differently, then let a linear final estimator fuse them.</p>
+<p>The five base regressors were:</p>
+<ul>
+<li><code>XGBRegressor</code></li>
+<li><code>RandomForestRegressor</code></li>
+<li><code>HistGradientBoostingRegressor</code></li>
+<li><code>LinearRegression</code></li>
+<li><code>MLPRegressor</code></li>
+<li><code>Ridge(alpha=1.0)</code> as the final estimator in <code>StackingRegressor</code></li>
+</ul>
+<p><code>HistGradientBoostingRegressor</code> was useful because it gave us a fast, scikit-learn-native boosted-tree baseline. It bins continuous features into histograms before evaluating splits, so it is lighter than classic XGBoost on memory and training overhead.</p>
+<p>The <code>MLPRegressor</code> branch handled the same processed features with a different inductive bias. It uses standard backpropagation with the <strong>ADAM</strong> optimizer (<code>solver="adam"</code>), so its weights are updated with adaptive first- and second-moment estimates instead of plain gradient descent.</p>
+<p>The final Task B stack achieved:</p>
+<table>
+<thead>
+<tr>
+<th>Final Task B model</th>
+<th style="text-align: right;">RMSE</th>
+<th style="text-align: right;">MAE</th>
+<th style="text-align: right;">R²</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>StackingRegressor (XGB + RF + HGB + LR + MLP -&gt; Ridge)</td>
+<td style="text-align: right;"><code>1.6965</code></td>
+<td style="text-align: right;"><code>1.3422</code></td>
+<td style="text-align: right;"><code>0.8266</code></td>
+</tr>
+</tbody>
+</table>
+<p>The reproduced single-model baselines on the same split make the same point as Task A: the stack beat every component model.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th style="text-align: right;">RMSE</th>
+<th style="text-align: right;">MAE</th>
+<th style="text-align: right;">R²</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HistGradientBoostingRegressor</td>
+<td style="text-align: right;"><code>1.7196</code></td>
+<td style="text-align: right;"><code>1.3472</code></td>
+<td style="text-align: right;"><code>0.8219</code></td>
+</tr>
+<tr>
+<td>XGBRegressor</td>
+<td style="text-align: right;"><code>1.7649</code></td>
+<td style="text-align: right;"><code>1.3787</code></td>
+<td style="text-align: right;"><code>0.8124</code></td>
+</tr>
+<tr>
+<td>RandomForestRegressor</td>
+<td style="text-align: right;"><code>1.7917</code></td>
+<td style="text-align: right;"><code>1.4016</code></td>
+<td style="text-align: right;"><code>0.8066</code></td>
+</tr>
+<tr>
+<td>MLPRegressor</td>
+<td style="text-align: right;"><code>1.8299</code></td>
+<td style="text-align: right;"><code>1.4274</code></td>
+<td style="text-align: right;"><code>0.7983</code></td>
+</tr>
+<tr>
+<td>LinearRegression</td>
+<td style="text-align: right;"><code>2.5464</code></td>
+<td style="text-align: right;"><code>1.7083</code></td>
+<td style="text-align: right;"><code>0.6094</code></td>
+</tr>
+<tr>
+<td>StackingRegressor (final notebook artifact)</td>
+<td style="text-align: right;"><code>1.6965</code></td>
+<td style="text-align: right;"><code>1.3422</code></td>
+<td style="text-align: right;"><code>0.8266</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-hyperparameter-tuning">4. Hyperparameter Tuning</h2>
+<h3 id="41-earlier-gradient-style-search">4.1 Earlier Gradient-Style Search</h3>
+<p>To try tuning hyperparameters, we first used <strong>SPSA</strong> (Simultaneous Perturbation Stochastic Approximation). But it turns out, tree ensembles with rounded integer parameters and validation-based objectives are not a natural fit for ordinary gradient-style search. We kept it as a baseline idea and moved to Optuna because Bayesian search is much better suited to mixed discrete + continuous tree hyperparameters.</p>
+<h3 id="42-xgboost-optuna-pipeline">4.2 XGBoost + Optuna Pipeline</h3>
+<p>Due to computational constraints, we decided to experiment with Optuna on a model that only used XGBoost.</p>
+<p>The full tuning workflow lives in <a href="../task_a/notebooks/taskA_xgboost_optuna.ipynb">taskA_xgboost_optuna.ipynb</a> and <a href="../task_a/scripts/taskA_xgb_optuna.py">taskA_xgb_optuna.py</a>.</p>
+<p>We used <strong>TPE</strong> (Tree-structured Parzen Estimator), which is Optuna’s Bayesian optimization sampler. The practical idea is simple: after each completed trial, it updates a probabilistic view of which parts of the hyperparameter space look promising and biases the next sample in that direction instead of sweeping blindly like grid search.</p>
+<p>The fixed study settings were:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Study name</td>
+<td><code>taskA_xgb_optuna</code></td>
+</tr>
+<tr>
+<td>Sampler</td>
+<td><code>TPESampler(seed=42)</code></td>
+</tr>
+<tr>
+<td>Trials</td>
+<td><code>25</code></td>
+</tr>
+<tr>
+<td>Outer CV</td>
+<td><code>StratifiedKFold(n_splits=5, shuffle=True, random_state=42)</code></td>
+</tr>
+<tr>
+<td>Metric optimized</td>
+<td><code>accuracy</code></td>
+</tr>
+<tr>
+<td>Early stopping</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td>Early stopping rounds</td>
+<td><code>40</code></td>
+</tr>
+<tr>
+<td>Internal early-stopping holdout</td>
+<td><code>0.1</code> of the fold-training partition</td>
+</tr>
+<tr>
+<td><code>scale_pos_weight</code> search</td>
+<td>Disabled (<code>include_scale_pos_weight=False</code>) because Task A is multiclass</td>
+</tr>
+</tbody>
+</table>
+<p>The tuning pipeline itself was deliberately conservative:</p>
+<ol>
+<li>Sample one candidate hyperparameter set.</li>
+<li>Run 5-fold stratified CV.</li>
+<li>Keep each outer validation fold clean for scoring only.</li>
+<li>Inside each training fold, carve out a smaller inner holdout for early stopping.</li>
+<li>Fit the Task A preprocessor only on the fold-training subset.</li>
+<li>Train <code>XGBClassifier</code> with early stopping.</li>
+<li>Extract <code>best_iteration</code> / <code>best_n_estimators</code>.</li>
+<li>Refit on the full outer training fold with that tree count.</li>
+<li>Score the outer validation fold.</li>
+<li>Return mean fold accuracy to Optuna.</li>
+</ol>
+<p>That separation matters because it lets early stopping help training without contaminating the outer fold score.</p>
+<p>The exact search space was:</p>
+<table>
+<thead>
+<tr>
+<th>Hyperparameter</th>
+<th>Distribution</th>
+<th>Search range</th>
+<th style="text-align: right;">Best value found</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>n_estimators</code></td>
+<td>Integer</td>
+<td><code>200</code> to <code>1200</code></td>
+<td style="text-align: right;"><code>1035</code></td>
+</tr>
+<tr>
+<td><code>max_depth</code></td>
+<td>Integer</td>
+<td><code>3</code> to <code>10</code></td>
+<td style="text-align: right;"><code>6</code></td>
+</tr>
+<tr>
+<td><code>learning_rate</code></td>
+<td>Log-uniform float</td>
+<td><code>0.01</code> to <code>0.30</code></td>
+<td style="text-align: right;"><code>0.0399230666</code></td>
+</tr>
+<tr>
+<td><code>min_child_weight</code></td>
+<td>Float</td>
+<td><code>1.0</code> to <code>12.0</code></td>
+<td style="text-align: right;"><code>4.4423116573</code></td>
+</tr>
+<tr>
+<td><code>subsample</code></td>
+<td>Float</td>
+<td><code>0.6</code> to <code>1.0</code></td>
+<td style="text-align: right;"><code>0.8524337374</code></td>
+</tr>
+<tr>
+<td><code>colsample_bytree</code></td>
+<td>Float</td>
+<td><code>0.6</code> to <code>1.0</code></td>
+<td style="text-align: right;"><code>0.8837262829</code></td>
+</tr>
+<tr>
+<td><code>gamma</code></td>
+<td>Float</td>
+<td><code>0.0</code> to <code>5.0</code></td>
+<td style="text-align: right;"><code>1.1909377972</code></td>
+</tr>
+<tr>
+<td><code>reg_alpha</code></td>
+<td>Log-uniform float</td>
+<td><code>1e-8</code> to <code>10.0</code></td>
+<td style="text-align: right;"><code>0.0159368471</code></td>
+</tr>
+<tr>
+<td><code>reg_lambda</code></td>
+<td>Log-uniform float</td>
+<td><code>1e-3</code> to <code>25.0</code></td>
+<td style="text-align: right;"><code>0.0318485426</code></td>
+</tr>
+</tbody>
+</table>
+<p>The best completed trial reached:</p>
+<ul>
+<li><strong>Mean 5-fold CV accuracy:</strong> <code>0.7944</code></li>
+<li><strong>Mean 5-fold CV macro F1:</strong> <code>0.7950</code></li>
+<li><strong>Best standalone rerun on a fresh 80/20 validation split:</strong> <code>0.7896</code> accuracy, <code>0.7903</code> macro F1</li>
+</ul>
+<p>We reconstructed the finished study from <code>task_a/artifacts/taskA_xgb_optuna_optuna_trials.csv</code> and used <code>optuna.visualization.plot_slice</code> to inspect how each searched hyperparameter related to mean CV accuracy.</p>
+<p><img alt="Optuna slice plot" src="figures/optuna_sliced.png"></p>
+<p><em>Figure 8. Slice plots reconstructed from the completed Optuna study. Each panel shows one searched hyperparameter against mean 5-fold CV accuracy.</em></p>
+<p>The answer to the original tuning question was clear: Optuna improved the standalone XGBoost branch, but not enough to beat the stronger heterogeneous stacks. That was useful because it separated <strong>tuning gains</strong> from <strong>representation + ensemble gains</strong>.</p>
+<h2 id="5-results-summary">5. Results &amp; Summary</h2>
+<h3 id="51-task-a-classifier-summary">5.1 Task A Classifier Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Evaluation protocol</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Macro F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single XGBoost</td>
+<td>Single 80/20 validation split</td>
+<td style="text-align: right;"><code>0.7896</code></td>
+<td style="text-align: right;"><code>0.7903</code></td>
+</tr>
+<tr>
+<td>Optuna-tuned single XGBoost</td>
+<td>5-fold CV mean (best trial)</td>
+<td style="text-align: right;"><code>0.7944</code></td>
+<td style="text-align: right;"><code>0.7950</code></td>
+</tr>
+<tr>
+<td>Leakage-free baseline</td>
+<td>Single 80/20 validation split</td>
+<td style="text-align: right;"><code>0.8103</code></td>
+<td style="text-align: right;"><code>0.8120</code></td>
+</tr>
+<tr>
+<td>Upgraded one-hot + clipping</td>
+<td>Single 80/20 validation split</td>
+<td style="text-align: right;"><code>0.8121</code></td>
+<td style="text-align: right;"><code>0.8139</code></td>
+</tr>
+<tr>
+<td>FC neural network</td>
+<td>5-fold CV mean</td>
+<td style="text-align: right;"><code>0.8157</code></td>
+<td style="text-align: right;"><code>0.8166</code></td>
+</tr>
+<tr>
+<td>Tree stack + CatBoost</td>
+<td>5-fold CV mean</td>
+<td style="text-align: right;"><code>0.8231</code></td>
+<td style="text-align: right;"><code>0.8247</code></td>
+</tr>
+<tr>
+<td>Tree stack + MLP</td>
+<td>5-fold CV mean</td>
+<td style="text-align: right;"><code>0.8374</code></td>
+<td style="text-align: right;"><code>0.8380</code></td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Task A classifier accuracy comparison" src="figures/task_a_classifier_accuracy_comparison.png"></p>
+<p><em>Figure 9. Horizontal accuracy comparison of all recorded Task A classifiers. Colors indicate evaluation protocol, so the plot should be interpreted together with the table above.</em></p>
+<p>Its confusion matrix for Tree stack + MLP:</p>
+<p><img alt="Best final model confusion matrix" src="figures/best_final_confusion_matrix.png"></p>
+<p><em>Figure 10. Confusion matrix of the best final Task A classifier (Task B-style StackingClassifier).</em></p>
+<p>The error pattern also matches the rest of the project: the model is strongest on the extreme class <code>VeryHigh(4)</code> and still struggles most on the middle buckets, especially <code>Low(1)</code> and <code>Moderate(2)</code>. In other words, the ambiguous middle remains harder than the endpoints.</p>
+<h3 id="52-task-b-regression-summary">5.2 Task B Regression Summary</h3>
+<p>Task B followed the same story: diverse ensembles beat stronger-tuned individual models.</p>
+<table>
+<thead>
+<tr>
+<th>Final Task B model</th>
+<th style="text-align: right;">RMSE</th>
+<th style="text-align: right;">MAE</th>
+<th style="text-align: right;">R²</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>StackingRegressor (XGB + RF + HGB + LR + MLP -&gt; Ridge)</td>
+<td style="text-align: right;"><code>1.6965</code></td>
+<td style="text-align: right;"><code>1.3422</code></td>
+<td style="text-align: right;"><code>0.8266</code></td>
+</tr>
+</tbody>
+</table>
+<p>The full comparison is below. <code>HistGradientBoostingRegressor</code> was the strongest single model at <code>R² = 0.8219</code>, but the stack still won on <strong>all three</strong> reported metrics.</p>
+<p><img alt="Task B model comparison" src="figures/task_b_model_comparison.png"></p>
+<p><em>Figure 11. Task B model comparison on the shared 80/20 validation split. The final stack is best across all three reported regression metrics.</em></p>
+<p>We also saved a few holdout diagnostics because a single average metric hides where regression models fail:</p>
+<ul>
+<li>mean residual (<code>actual - predicted</code>): <code>-0.0505</code></li>
+<li>median absolute error: <code>1.1312</code></li>
+<li>90th percentile absolute error: <code>2.6939</code></li>
+<li>predictions within <code>±1.0</code> interest-rate point: <code>38.36%</code></li>
+</ul>
+<p>The actual-vs-predicted plot shows that the model tracks the dense low-to-mid-rate region well, but the sparse high-rate tail spreads out much more.</p>
+<p><img alt="Task B actual vs predicted" src="figures/task_b_actual_vs_predicted.png"></p>
+<p><em>Figure 12. Hexbin view of the final Task B stack. Most loans sit close to the diagonal, but the sparse high-rate tail is harder to price tightly.</em></p>
+<p>The residual plots say the same thing from the error side: overall bias stays small, but variance grows as predicted rates increase.</p>
+<p><img alt="Task B residual diagnostics" src="figures/task_b_residual_diagnostics.png"></p>
+<p><em>Figure 13. Residual distribution and residuals vs predicted values for the final Task B stack. Errors widen in the upper-rate region even though the overall bias remains small.</em></p>
+<p>Bucketed absolute error makes this easier to see. Error is tightest in the dominant <code>5-8</code> region and still fairly controlled at the floor rate <code>4.99</code>, but it grows sharply in <code>8-12</code>, <code>12-20</code>, and especially <code>20+</code>. That lines up with the data distribution: the difficult high-rate buckets are also the smallest ones.</p>
+<p><img alt="Task B absolute error by bucket" src="figures/task_b_error_by_bucket.png"></p>
+<p><em>Figure 14. Absolute error by true interest-rate bucket. The model is strongest in the dense low-rate regime and weakest in the sparse high-rate tail.</em></p>
+      </article>
+    </div>
+  </body>
+</html>

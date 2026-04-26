@@ -1,66 +1,62 @@
 # CreditSense: Loan Risk Assessment Challenge
 
-**Team name:** `[fill in before PDF export]`  
-**Student names:** `[fill in before PDF export]`  
-**Kaggle username(s):** `[fill in before PDF export]`
+**Team name:** Tuffs & Guka  
+**Student names:** Dachi Tchotashvili Giorgi Kekenadze Guka Matcharashvili
 
-This report summarizes the current repository state for the AI1215 group project. Task A classification was primarily developed by **Dachi Tchotashvili**, while Task B regression was primarily developed by **Guram Matcharashvili**. The main sources used here are the assignment brief in [project_description.pdf](project_description.pdf), the experiment log in [TaskA.md](../TaskA.md), the Task A reports under [`task_a/reports/`](../task_a/reports), the XGBoost tuning notebook [taskA_xgboost_optuna.ipynb](../task_a/notebooks/taskA_xgboost_optuna.ipynb), and Guram's regression notebook [Task_B.ipynb](../task_b/notebooks/Task_B.ipynb).
+**Kaggle username(s):** Dachi Tchotashvili Giorgi Kekenadze Guram Matcharashvili
 
 ## 1. Data Exploration & Preprocessing
 
-The training set contains **35,000 applicants**, **55 input features**, and two targets: `RiskTier` for classification and `InterestRate` for regression. The class balance is close to uniform across the five risk tiers, so plain accuracy is a meaningful primary metric for Task A and is not dominated by one majority class.
+The training set has **35,000 rows**, **55 input features**, and two targets. For Task A, the class balance is close to uniform across the five risk tiers, so we did **not** need reweighting or resampling just to make accuracy usable.
 
-![RiskTier distribution](figures/risk_tier_distribution.svg)
+- tier 0 = 6,724, tier 1 = 7,283, tier 2 = 6,998, tier 3 = 6,812, tier 4 = 7,183.
 
-*Figure 1. The Task A class distribution is close to uniform: tier 0 = 6,724, tier 1 = 7,283, tier 2 = 6,998, tier 3 = 6,812, tier 4 = 7,183.*
-
-Missingness is highly structured rather than random. `StudentLoanOutstandingBalance` is missing for **59.98%** of rows, `CollateralType` for **55.06%**, `CollateralValue` for **54.64%**, and both `MortgageOutstandingBalance` and `PropertyValue` for roughly **45%** of the dataset. These are not ordinary nulls: in many cases they mean the applicant simply does not have the relevant liability, asset, or collateral.
+The first thing that actually mattered was missingness. Large blocks of nulls were clearly structural, not random noise. `StudentLoanOutstandingBalance` is missing for **59.98%** of rows, `CollateralType` for **55.06%**, `CollateralValue` for **54.64%**, and both `MortgageOutstandingBalance` and `PropertyValue` for about **45%**. We treated this as signal about whether an applicant even has a given liability or asset.
 
 ![Top missing features](figures/top_missing_features.svg)
 
 *Figure 2. The largest missing blocks come from structurally absent collateral, asset, and loan-balance features.*
 
-The strongest univariate relationships are concentrated in credit-history variables. For `RiskTier`, the largest absolute correlations are `NumberOfLatePayments30Days` (`0.5707`), `RevolvingUtilizationRate` (`0.5540`), `NumberOfChargeOffs` (`0.4504`), and `NumberOfCollections` (`0.4413`). For `InterestRate`, the most important variables are `NumberOfChargeOffs` (`0.6484`), `NumberOfLatePayments30Days` (`0.5877`), `NumberOfLatePayments90Days` (`0.5500`), and `NumberOfLatePayments60Days` (`0.4639`).
+Next we checked the strongest target correlations. For `RiskTier`, the biggest drivers were `NumberOfLatePayments30Days` (`0.5707`), `RevolvingUtilizationRate` (`0.5540`), `NumberOfChargeOffs` (`0.4504`), and `NumberOfCollections` (`0.4413`). For `InterestRate`, the same credit-history variables became even stronger, especially `NumberOfChargeOffs` (`0.6484`) and `NumberOfLatePayments90Days` (`0.5500`). This told us early that delinquency severity was the main backbone of both tasks.
 
 ![Top target correlations](figures/top_target_correlations.svg)
 
 *Figure 3. Both tasks are dominated by credit-history severity, but pricing is even more sensitive to severe derogatory marks such as charge-offs and 90-day delinquencies.*
 
-To make multivariate structure legible in the report, the correlation heatmap below focuses on the most informative numeric variables rather than the full 55-feature matrix. It uses a seaborn heatmap with the **magma** palette and annotated coefficients in every cell.
+We then condensed the multivariate view into a smaller numeric correlation matrix instead of dumping all 55 features. That made the important structure easier to read: late-payment counts, charge-offs, collections, utilization, and `RiskTier` form one tight risk cluster, while `AnnualIncome` pulls in the opposite direction.
 
 ![Correlation matrix](figures/correlation_matrix.png)
 
 *Figure 4. Correlation matrix for the most informative numeric features and both targets. Late-payment counts, charge-offs, collections, utilization, and `RiskTier` form the dominant risk cluster, while `AnnualIncome` moves in the opposite direction.*
 
-Task B also benefits from looking directly at the target itself. `InterestRate` is strongly right-skewed: the mean is **7.31**, the median is **6.08**, the interquartile range is **2.95**, and **33.3%** of the training rows sit exactly at the pricing floor of **4.99**. Even the upper tail is fairly concentrated, with the 90th percentile at **10.27** and the 95th percentile at **12.96**, but a small number of high-rate loans extend all the way to **35.99**.
+For Task B, we also inspected the target distribution directly because the regression loss landscape depends heavily on where the mass sits. `InterestRate` is strongly right-skewed: mean **7.31**, median **6.08**, IQR **2.95**, and **33.3%** of rows exactly at the floor rate **4.99**. The upper tail is thin but real: the 90th percentile is **10.27**, the 95th percentile is **12.96**, and the maximum is **35.99**. That immediately suggested that the model performs differently across interest-rate ranges.
 
 ![InterestRate distribution](figures/task_b_interest_rate_distribution.png)
 
 *Figure 5. The Task B target is concentrated near the floor rate of `4.99`, with a long but thin right tail into high-risk pricing.*
 
-The link between the two tasks is visible when `InterestRate` is grouped by `RiskTier`. Median pricing increases almost monotonically from tiers `0` through `4`, but tier `4` is also much wider than the others, which means the regression problem becomes harder precisely where borrower risk is most extreme.
+We also checked how `InterestRate` moves with `RiskTier`. The median rate rises almost monotonically from tier `0` to tier `4`, but tier `4` also spreads out much more than the others. In practice, that meant the hardest regression cases were concentrated exactly where borrower risk was most extreme.
 
 ![InterestRate by RiskTier](figures/task_b_interest_rate_by_risktier.png)
 
 *Figure 6. Interest rates rise systematically with `RiskTier`, and the highest-risk group has the broadest pricing spread.*
 
-The strongest Task B drivers are still delinquency and derogatory-history variables. `NumberOfChargeOffs` (`+0.648`), `NumberOfLatePayments30Days` (`+0.588`), `NumberOfLatePayments90Days` (`+0.550`), and `NumberOfLatePayments60Days` (`+0.464`) dominate the numeric correlations. `AnnualIncome` is the strongest negative relationship at `-0.148`, which is directionally sensible but much weaker than the credit-damage variables.
+Finally, we separated the Task B-specific numeric correlations because they explain the regression stack much better than generic feature lists do. `NumberOfChargeOffs`, 30/60/90-day delinquencies, collections, and utilization dominate. `AnnualIncome` is the strongest negative term, but its magnitude is still much smaller than the credit-damage features.
 
 ![Task B top correlations](figures/task_b_top_correlations.png)
 
 *Figure 7. Task B is driven primarily by severe credit-history variables, while income acts as a weaker offsetting signal.*
 
-These observations directly shaped preprocessing:
+From these checks, our preprocessing decisions were straightforward:
 
-- **Task A** used split-first preprocessing to avoid leakage, explicit `"Missing"` categories for absent labels, missing-value indicators for numeric features, structural zero-fill where absence meant “does not have this item”, median imputation for remaining numerics, 99th-percentile clipping for heavy-tailed money and ratio variables, `log1p` on money-like features, and strict schema alignment after one-hot encoding.
-- **Task B** used Guram Matcharashvili's regression notebook pipeline: median imputation for numerics, most-frequent imputation plus one-hot encoding for categoricals, and additional `StandardScaler` normalization only for the neural-network branch.
+- For **Task A**, we first fixed leakage, then used explicit `"Missing"` categories, numeric missingness indicators, structural zero-fill where absence meant “does not have this”, median imputation elsewhere, 99th-percentile clipping, `log1p` on money-like features, and strict post-one-hot schema alignment.
+- For **Task B**, we kept the pipeline simpler: median imputation for numerics, most-frequent imputation plus one-hot encoding for categoricals, and `StandardScaler` only on the neural-network branch.
 
 ## 2. Feature Engineering
 
-Most gains in this repository came from better tabular representations rather than from large numbers of handcrafted business variables. The main additions were:
-
 | Addition | Motivation | Where used |
 | --- | --- | --- |
+| One-hot encoding for categorical features | Convert categorical labels into stable model-readable columns while preserving category identity after train / validation splitting | Task A and Task B |
 | Numeric `*_is_missing` indicators | Preserve signal from structured missingness instead of hiding it behind imputation | Task A |
 | Structural zero-fill for balances / assets | Encode “not present” as zero when that is the correct financial meaning | Task A |
 | 99th-percentile clipping | Reduce sensitivity to extreme outliers in skewed financial variables | Task A |
@@ -68,45 +64,39 @@ Most gains in this repository came from better tabular representations rather th
 | Pairwise products among top 10 correlated numeric features | Let the FC neural network model interactions between delinquency, utilization, and affordability signals | Task A FC neural network |
 | Task-specific scaling | Standardize continuous inputs for logistic / MLP branches without distorting tree-model inputs | Task A stack and Task B MLP |
 
-For the FC neural-network experiment, the top 10 fold-stable features were `NumberOfLatePayments30Days`, `RevolvingUtilizationRate`, `NumberOfChargeOffs`, `NumberOfCollections`, `NumberOfLatePayments60Days`, `AnnualIncome`, `NumberOfBankruptcies`, `NumberOfLatePayments90Days`, `LoanToIncomeRatio`, and `NumberOfHardInquiries12Mo`. Dachi created all **45 pairwise interactions** among them, expanding the neural-network matrix from **115** processed base features to **160** final features.
 
-The repository does not contain a one-by-one ablation for every preprocessing step, but it does contain a measured before/after comparison for the full upgraded Task A preprocessing bundle:
+For the FC neural-network branch, we selected 10 fold-stable high-signal features and created all **45 pairwise products** among them. That expanded the processed matrix from **115** base features to **160** final features. We did this because the neural model could use explicit interaction terms, while the tree ensembles were already able to discover many of those splits on their own.
+
+before/after check for the full upgraded Task A preprocessing bundle:
 
 | Task A preprocessing setup | Evaluation protocol | Accuracy | Macro F1 | Change vs previous |
 | --- | --- | ---: | ---: | --- |
 | Leakage-free repaired baseline | Single 80/20 validation split | `0.8103` | `0.8120` | Baseline |
 | One-hot + missing indicators + structural zero-fill + clipping + `log1p` | Single 80/20 validation split | `0.8121` | `0.8139` | `+0.0018` accuracy, `+0.0019` macro F1 |
 
-The gain is modest but important because it came **after removing leakage**, so the improvement is more trustworthy than the earlier inflated baseline behavior.
+The gain is small, but it's an honest work.
 
 ## 3. Model Selection
 
+We tried several model family, or ensemble diversity.
+
 ### 3.1 Task A: Classification (`RiskTier`)
-
-Task A is the richest experimental branch in the repository. The explored candidate families were:
-
-- repaired baseline tree workflow after leakage removal;
-- upgraded one-hot / zero-fill / clipping pipeline;
-- a fully connected neural network with engineered interactions;
-- a tree stack that adds a native-categorical `CatBoostClassifier`;
-- a Task B-style `StackingClassifier` that mixes tree, linear, and neural branches;
-- a standalone `XGBClassifier` branch with explicit Optuna tuning.
-
-The strongest Task A candidates are summarized below.
 
 | Model | Evaluation protocol | Accuracy | Macro F1 | Notes |
 | --- | --- | ---: | ---: | --- |
 | FC neural network | 5-fold CV mean | `0.8157` | `0.8166` | `MLPClassifier` with 45 engineered pairwise interactions |
 | Tree stack + CatBoost | 5-fold CV mean | `0.8231` | `0.8247` | RF + XGB + LGBM + native-categorical CatBoost, linear meta-layer |
-| Task B-style StackingClassifier | 5-fold CV mean | `0.8374` | `0.8380` | XGB + RF + HGB + logistic + MLP, multinomial logistic meta-learner |
+| Tree stack + MLP | 5-fold CV mean | `0.8374` | `0.8380` | XGB + RF + HGB + logistic + MLP, multinomial logistic meta-learner |
 | Optuna-tuned single XGBoost | 5-fold CV best trial | `0.7944` | `0.7950` | Strongest standalone XGB configuration found by TPE search |
 | Standalone XGBoost validation run | Single 80/20 validation split | `0.7896` | `0.7903` | Rerun with Optuna-best parameters and Task A preprocessing |
 
-The best final classifier is the **Task B-style StackingClassifier**. Its main advantage is model diversity: the tree models capture nonlinear tabular structure, while the logistic and MLP branches add smoother global boundaries and complementary probability estimates for the meta-learner.
+Our best final classifier was the **Tree stack + MLP StackingClassifier** because it mixed different failure modes: tree models captured nonlinear tabular structure, while the logistic and MLP branches added smoother global boundaries and different probability shapes for the meta-learner.
 
 ### 3.2 Task B: Regression (`InterestRate`)
 
-Guram Matcharashvili's Task B notebook used a five-model regression stack:
+For Task B, we kept the same mindset: combine models that see the tabular space differently, then let a linear final estimator fuse them.
+
+The five base regressors were:
 
 - `XGBRegressor`
 - `RandomForestRegressor`
@@ -115,13 +105,17 @@ Guram Matcharashvili's Task B notebook used a five-model regression stack:
 - `MLPRegressor`
 - `Ridge(alpha=1.0)` as the final estimator in `StackingRegressor`
 
-The final recorded Task B result on an 80/20 split was:
+`HistGradientBoostingRegressor` was useful because it gave us a fast, scikit-learn-native boosted-tree baseline. It bins continuous features into histograms before evaluating splits, so it is lighter than classic XGBoost on memory and training overhead.
+
+The `MLPRegressor` branch handled the same processed features with a different inductive bias. It uses standard backpropagation with the **ADAM** optimizer (`solver="adam"`), so its weights are updated with adaptive first- and second-moment estimates instead of plain gradient descent.
+
+The final Task B stack achieved:
 
 | Final Task B model | RMSE | MAE | R² |
 | --- | ---: | ---: | ---: |
 | StackingRegressor (XGB + RF + HGB + LR + MLP -> Ridge) | `1.6965` | `1.3422` | `0.8266` |
 
-Locally reproduced single-model baselines on the same split show that the full stack still performed best:
+The reproduced single-model baselines on the same split make the same point as Task A: the stack beat every component model.
 
 | Model | RMSE | MAE | R² |
 | --- | ---: | ---: | ---: |
@@ -136,20 +130,17 @@ Locally reproduced single-model baselines on the same split show that the full s
 
 ### 4.1 Earlier Gradient-Style Search
 
-The repository contains an earlier gradient-descent-style attempt in [optimize_taskA_hyperparams.py](../task_a/scripts/optimize_taskA_hyperparams.py). Because the Task A objective depends on tree ensembles, rounded integer hyperparameters, and validation metrics, ordinary gradient descent is not mathematically appropriate. The script therefore used **SPSA** (Simultaneous Perturbation Stochastic Approximation) as a gradient-like approximation. That experiment was useful as a baseline, but the script itself explicitly notes that **Optuna / Bayesian optimization is a better fit** for this mixed discrete + continuous search problem.
+To try tuning hyperparameters, we first used **SPSA** (Simultaneous Perturbation Stochastic Approximation). But it turns out, tree ensembles with rounded integer parameters and validation-based objectives are not a natural fit for ordinary gradient-style search. We kept it as a baseline idea and moved to Optuna because Bayesian search is much better suited to mixed discrete + continuous tree hyperparameters.
 
 ### 4.2 XGBoost + Optuna Pipeline
 
-The full standalone XGBoost tuning workflow is documented in [taskA_xgboost_optuna.ipynb](../task_a/notebooks/taskA_xgboost_optuna.ipynb) and implemented in [taskA_xgb_optuna.py](../task_a/scripts/taskA_xgb_optuna.py). The core Optuna calls are:
+Due to computational constraints, we decided to experiment with Optuna on a model that only used XGBoost.
 
-- `optuna.create_study(...)`
-- `optuna.samplers.TPESampler(seed=42)`
-- `study.optimize(objective, n_trials=25, timeout=None, show_progress_bar=False)`
-- `optuna.visualization.plot_slice(...)`
+The full tuning workflow lives in [taskA_xgboost_optuna.ipynb](../task_a/notebooks/taskA_xgboost_optuna.ipynb) and [taskA_xgb_optuna.py](../task_a/scripts/taskA_xgb_optuna.py).
 
-The sampler used was **TPE** (Tree-structured Parzen Estimator), which is a Bayesian optimization method. Briefly, it does not sweep the whole space like grid search. Instead, it fits probability models to the regions that have produced good trials and the regions that have produced poor trials, then proposes the next hyperparameter set in areas that look promising for improving the target score.
+We used **TPE** (Tree-structured Parzen Estimator), which is Optuna’s Bayesian optimization sampler. The practical idea is simple: after each completed trial, it updates a probabilistic view of which parts of the hyperparameter space look promising and biases the next sample in that direction instead of sweeping blindly like grid search.
 
-The study optimized **mean 5-fold cross-validation accuracy** with the following fixed study settings:
+The fixed study settings were:
 
 | Setting | Value |
 | --- | --- |
@@ -163,22 +154,22 @@ The study optimized **mean 5-fold cross-validation accuracy** with the following
 | Internal early-stopping holdout | `0.1` of the fold-training partition |
 | `scale_pos_weight` search | Disabled (`include_scale_pos_weight=False`) because Task A is multiclass |
 
-The pipeline executed inside each Optuna trial was:
+The tuning pipeline itself was deliberately conservative:
 
-1. Sample one candidate hyperparameter set from the search space.
-2. Split the full training data with 5-fold stratified CV.
-3. For each outer fold, reserve the fold validation split strictly for scoring.
-4. Inside the fold-training partition, create a smaller internal holdout for XGBoost early stopping.
+1. Sample one candidate hyperparameter set.
+2. Run 5-fold stratified CV.
+3. Keep each outer validation fold clean for scoring only.
+4. Inside each training fold, carve out a smaller inner holdout for early stopping.
 5. Fit the Task A preprocessor only on the fold-training subset.
-6. Train `XGBClassifier` with early stopping on the internal holdout.
+6. Train `XGBClassifier` with early stopping.
 7. Extract `best_iteration` / `best_n_estimators`.
-8. Refit the fold model on the full outer training fold using the selected tree count.
+8. Refit on the full outer training fold with that tree count.
 9. Score the outer validation fold.
-10. Return mean fold accuracy to Optuna as the objective value.
+10. Return mean fold accuracy to Optuna.
 
-This keeps the outer validation folds clean and uses the inner holdout only for stopping the boosting process.
+That separation matters because it lets early stopping help training without contaminating the outer fold score.
 
-The exact Optuna search space was:
+The exact search space was:
 
 | Hyperparameter | Distribution | Search range | Best value found |
 | --- | --- | --- | ---: |
@@ -198,19 +189,17 @@ The best completed trial reached:
 - **Mean 5-fold CV macro F1:** `0.7950`
 - **Best standalone rerun on a fresh 80/20 validation split:** `0.7896` accuracy, `0.7903` macro F1
 
-The figure below was generated from the finished Optuna run stored in `task_a/artifacts/taskA_xgb_optuna_optuna_trials.csv`. It uses `optuna.visualization.plot_slice` to show how each searched hyperparameter varied against **mean cross-validation accuracy** across the completed trials.
+We reconstructed the finished study from `task_a/artifacts/taskA_xgb_optuna_optuna_trials.csv` and used `optuna.visualization.plot_slice` to inspect how each searched hyperparameter related to mean CV accuracy.
 
 ![Optuna slice plot](figures/optuna_sliced.png)
 
 *Figure 8. Slice plots reconstructed from the completed Optuna study. Each panel shows one searched hyperparameter against mean 5-fold CV accuracy.*
 
-The main takeaway is that tuning substantially improved the standalone XGBoost branch, but the single-model ceiling remained below the best stacked ensembles. This is an important result in itself: in this repository, **representation quality plus ensemble diversity mattered more than tuning one tree model alone**.
+The answer to the original tuning question was clear: Optuna improved the standalone XGBoost branch, but not enough to beat the stronger heterogeneous stacks. That was useful because it separated **tuning gains** from **representation + ensemble gains**.
 
 ## 5. Results & Summary
 
 ### 5.1 Task A Classifier Summary
-
-The Task A experiments used mixed evaluation protocols, so the table below should be read with care. The point of the summary is not to claim perfect apples-to-apples comparability between every row, but to show the progression of the classification work in the repository.
 
 | Model | Evaluation protocol | Accuracy | Macro F1 |
 | --- | --- | ---: | ---: |
@@ -220,68 +209,55 @@ The Task A experiments used mixed evaluation protocols, so the table below shoul
 | Upgraded one-hot + clipping | Single 80/20 validation split | `0.8121` | `0.8139` |
 | FC neural network | 5-fold CV mean | `0.8157` | `0.8166` |
 | Tree stack + CatBoost | 5-fold CV mean | `0.8231` | `0.8247` |
-| Task B-style StackingClassifier | 5-fold CV mean | `0.8374` | `0.8380` |
+| Tree stack + MLP | 5-fold CV mean | `0.8374` | `0.8380` |
 
 ![Task A classifier accuracy comparison](figures/task_a_classifier_accuracy_comparison.png)
 
 *Figure 9. Horizontal accuracy comparison of all recorded Task A classifiers. Colors indicate evaluation protocol, so the plot should be interpreted together with the table above.*
 
-The best final model is the **Task B-style StackingClassifier**. It improved on the Tree stack + CatBoost baseline by **+0.0143** accuracy and **+0.0133** macro F1, and improved on the FC neural network by **+0.0217** accuracy and **+0.0214** macro F1.
-
-Its confusion matrix is shown below.
+Its confusion matrix for Tree stack + MLP:
 
 ![Best final model confusion matrix](figures/best_final_confusion_matrix.png)
 
 *Figure 10. Confusion matrix of the best final Task A classifier (Task B-style StackingClassifier).*
 
-This final model remained strongest on the extreme class `VeryHigh(4)` and still struggled most on the middle buckets, especially `Low(1)` and `Moderate(2)`. That pattern is expected in credit risk: the edge cases are easier to separate than the borderline applicants in the middle of the distribution.
+The error pattern also matches the rest of the project: the model is strongest on the extreme class `VeryHigh(4)` and still struggles most on the middle buckets, especially `Low(1)` and `Moderate(2)`. In other words, the ambiguous middle remains harder than the endpoints.
 
 ### 5.2 Task B Regression Summary
 
-Task B remained strong as well. The final regression stack achieved:
+Task B followed the same story: diverse ensembles beat stronger-tuned individual models.
 
 | Final Task B model | RMSE | MAE | R² |
 | --- | ---: | ---: | ---: |
 | StackingRegressor (XGB + RF + HGB + LR + MLP -> Ridge) | `1.6965` | `1.3422` | `0.8266` |
 
-The full comparison across the five baseline regressors and the final stack is shown below. `HistGradientBoostingRegressor` was the strongest single model at `R² = 0.8219`, but the stack still achieved the best RMSE, the best MAE, and the best `R²`.
+The full comparison is below. `HistGradientBoostingRegressor` was the strongest single model at `R² = 0.8219`, but the stack still won on **all three** reported metrics.
 
 ![Task B model comparison](figures/task_b_model_comparison.png)
 
 *Figure 11. Task B model comparison on the shared 80/20 validation split. The final stack is best across all three reported regression metrics.*
 
-The holdout diagnostics are also strong:
+We also saved a few holdout diagnostics because a single average metric hides where regression models fail:
 
 - mean residual (`actual - predicted`): `-0.0505`
 - median absolute error: `1.1312`
 - 90th percentile absolute error: `2.6939`
 - predictions within `±1.0` interest-rate point: `38.36%`
 
-The actual-vs-predicted view shows that most of the validation density is captured well in the low-to-mid-rate region, while the rare high-rate cases produce visibly wider dispersion.
+The actual-vs-predicted plot shows that the model tracks the dense low-to-mid-rate region well, but the sparse high-rate tail spreads out much more.
 
 ![Task B actual vs predicted](figures/task_b_actual_vs_predicted.png)
 
 *Figure 12. Hexbin view of the final Task B stack. Most loans sit close to the diagonal, but the sparse high-rate tail is harder to price tightly.*
 
-Residual diagnostics tell the same story. The residual distribution stays close to zero on average, but variance expands as predicted rates move upward, which is typical when the right tail is both noisier and much less common in training data.
+The residual plots say the same thing from the error side: overall bias stays small, but variance grows as predicted rates increase.
 
 ![Task B residual diagnostics](figures/task_b_residual_diagnostics.png)
 
 *Figure 13. Residual distribution and residuals vs predicted values for the final Task B stack. Errors widen in the upper-rate region even though the overall bias remains small.*
 
-The bucketed error analysis makes that asymmetry explicit. Errors are tightest in the dominant `5-8` range and still relatively stable at the exact floor rate `4.99`, but they grow sharply once the true rate moves into `8-12`, `12-20`, and especially `20+`. That is consistent with the much smaller sample counts in those buckets (`291` rows in `12-20` and only `134` rows in `20+`).
+Bucketed absolute error makes this easier to see. Error is tightest in the dominant `5-8` region and still fairly controlled at the floor rate `4.99`, but it grows sharply in `8-12`, `12-20`, and especially `20+`. That lines up with the data distribution: the difficult high-rate buckets are also the smallest ones.
 
 ![Task B absolute error by bucket](figures/task_b_error_by_bucket.png)
 
 *Figure 14. Absolute error by true interest-rate bucket. The model is strongest in the dense low-rate regime and weakest in the sparse high-rate tail.*
-
-### 5.3 Summary Reflection & Learnings
-
-- **Leakage removal and structured-missingness handling were foundational.** The biggest early step was making the Task A preprocessing honest before adding more complex models.
-- **Feature engineering mattered, but ensemble diversity mattered more.** Missingness indicators, zero-fill, clipping, and `log1p` created a better input space; the best gains after that came from combining diverse model families.
-- **A tuned single XGBoost was not enough to beat the best stacks.** Optuna improved the standalone XGBoost branch substantially, but it still stayed below the best heterogeneous ensembles.
-- **The hardest region of the task is the middle of the label space.** `Low(1)` and `Moderate(2)` remain the most confusable classes, which is visible in every serious classifier report.
-- **Task B becomes harder in the high-rate tail.** The regression stack is very stable in the floor and `5-8` regimes, but absolute error widens materially once true rates move above `8`, especially in the sparse `20+` bucket.
-- **There is still room to improve the tuning stage.** The Optuna run used only 25 trials, tuned only the standalone XGBoost branch, and searched a moderate space. Future work should widen the search ranges, increase trial count, and tune the stronger stacked models as well.
-
-Overall, the repository clearly exceeds the assignment baselines on both tasks. The strongest Task A result is the **Task B-style StackingClassifier** at **0.8374 accuracy / 0.8380 macro F1**, and the strongest Task B result is the regression stack at **`R² = 0.8266`**. The core lesson from the project is that in structured financial tabular data, **careful preprocessing and heterogeneous ensembles were more valuable than relying on one model family alone**.
